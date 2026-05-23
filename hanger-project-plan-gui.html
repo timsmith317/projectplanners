@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hanger — Project Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --bg-card: #ffffff;
+    --bg-soft: #f5f2ea;
+    --ink: #1c1c1a;
+    --ink-soft: #5a5a55;
+    --ink-dim: #9a9a93;
+    --accent: #4a5d4f;
+    --accent-soft: #e8efe5;
+    --line: #ebe8e0;
+    --line-strong: #d5d2ca;
+    --amber-bg: #f9efd9;
+    --amber-border: #e8d4a6;
+    --amber-ink: #7a5a2c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh; line-height: 1.5;
+  }
+  .app-header {
+    background: rgba(250,250,247,0.92); border-bottom: 1px solid var(--line);
+    padding: 20px 32px; display: flex; justify-content: space-between;
+    align-items: center; position: sticky; top: 0; z-index: 100;
+    backdrop-filter: saturate(180%) blur(8px);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-text { display: flex; flex-direction: column; }
+  .brand h1 {
+    font-family: 'Fraunces', Georgia, serif; font-weight: 600;
+    font-size: 28px; letter-spacing: -0.5px; line-height: 1;
+  }
+  .brand p {
+    font-size: 10px; color: var(--ink-dim); letter-spacing: 2.5px;
+    text-transform: uppercase; margin-top: 4px; font-weight: 500;
+  }
+  .actions { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-strong);
+    background: var(--bg-card); color: var(--ink);
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer;
+    transition: all 150ms;
+  }
+  .btn:hover { background: var(--bg-soft); }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn-primary:hover { background: #2a2a28; }
+  .btn-danger { color: #c8504c; border-color: #e5c4c2; }
+  .btn-danger:hover { background: #f5dedc; }
+
+  .reminder-banner {
+    background: var(--amber-bg);
+    border-bottom: 1px solid var(--amber-border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    animation: slideDown 250ms ease;
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .reminder-text {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--amber-ink); font-size: 13px; font-weight: 500;
+  }
+  .reminder-icon {
+    width: 20px; height: 20px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .reminder-actions { display: flex; gap: 8px; }
+  .reminder-actions .btn { padding: 6px 12px; font-size: 10px; }
+  .btn-amber {
+    background: var(--amber-ink);
+    color: var(--amber-bg);
+    border-color: var(--amber-ink);
+  }
+  .btn-amber:hover { background: #634822; }
+  .reminder-banner.hide { display: none; }
+
+  .toast {
+    position: fixed; top: 80px; right: 32px;
+    background: var(--ink); color: var(--bg);
+    padding: 12px 18px; border-radius: 8px; font-size: 12px; font-weight: 500;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25); z-index: 1000;
+    opacity: 0; transform: translateY(-10px); transition: all 250ms;
+    pointer-events: none; max-width: 360px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .layout {
+    display: grid; grid-template-columns: 280px 1fr; gap: 24px;
+    padding: 24px 32px; max-width: 1500px; margin: 0 auto;
+  }
+  .sidebar {
+    position: sticky; top: 90px; align-self: start;
+    background: var(--bg-card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 20px;
+  }
+  .sidebar h2 {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 2.5px;
+    color: var(--ink-dim); margin-bottom: 14px; font-weight: 600;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px solid var(--line);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label {
+    font-size: 11px; color: var(--ink-soft); text-transform: uppercase;
+    letter-spacing: 1.5px; font-weight: 500;
+  }
+  .stat-value { font-size: 18px; font-weight: 600; color: var(--ink); }
+  .progress-bar {
+    width: 100%; height: 6px; background: var(--line);
+    border-radius: 3px; overflow: hidden; margin-top: 12px;
+  }
+  .progress-fill { height: 100%; background: var(--accent); transition: width 300ms ease; }
+  .progress-caption { font-size: 11px; color: var(--ink-soft); margin-top: 8px; text-align: center; }
+  .export-status {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .collapse-controls {
+    margin-top: 12px;
+    display: flex;
+    gap: 4px;
+  }
+  .collapse-link {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--ink-soft);
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 6px 4px;
+    border-radius: 4px;
+  }
+  .collapse-link:hover { background: var(--bg-soft); color: var(--ink); }
+
+  .main { display: flex; flex-direction: column; gap: 24px; }
+  .vision-card {
+    background: var(--bg-card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 24px;
+  }
+  .vision-card h2 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-size: 20px; margin-bottom: 8px; letter-spacing: -0.3px;
+  }
+  .vision-card p { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+  .vision-edit {
+    margin-top: 12px; width: 100%; border: 1px solid var(--line);
+    border-radius: 6px; padding: 10px 12px;
+    font-family: 'Inter', sans-serif; font-size: 13px;
+    color: var(--ink); background: var(--bg);
+    resize: vertical; min-height: 80px;
+  }
+  .vision-edit:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .structure-card {
+    background: var(--bg-card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 20px 24px;
+    margin-top: 4px;
+  }
+  .structure-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .structure-header h2 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-size: 18px; letter-spacing: -0.3px;
+  }
+  .structure-edit-btn {
+    padding: 6px 14px; font-size: 10px;
+  }
+  .structure-command-wrap {
+    position: relative;
+    margin: 0 0 16px 0;
+  }
+  .structure-command {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 11px; line-height: 1.5;
+    color: var(--ink-dim);
+    background: var(--bg);
+    padding: 12px 14px;
+    padding-right: 70px;  /* leave room for Copy button */
+    border-radius: 6px;
+    border: 1px dashed var(--line-strong);
+    white-space: pre;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .structure-copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    padding: 4px 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: var(--bg-card);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 150ms;
+    z-index: 1;
+  }
+  .structure-copy-btn:hover {
+    background: var(--bg-soft); color: var(--ink);
+  }
+  .structure-copy-btn:active {
+    transform: scale(0.95);
+  }
+  .structure-copy-btn.copied {
+    background: var(--accent); color: var(--bg);
+    border-color: var(--accent);
+  }
+  .structure-tree {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 13px;
+    background: var(--bg-soft);
+    padding: 16px 18px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    overflow-x: auto;
+  }
+  .tree-row {
+    display: flex; align-items: baseline;
+    line-height: 1.7;
+    white-space: nowrap;
+  }
+  .tree-row.tree-root {
+    padding-bottom: 4px; margin-bottom: 4px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .tree-prefix {
+    color: var(--ink-dim);
+    white-space: pre;
+    user-select: none;
+  }
+  .tree-icon {
+    margin-right: 6px;
+    font-size: 12px;
+    display: inline-block;
+    min-width: 16px;
+    text-align: center;
+  }
+  .tree-name {
+    color: var(--ink-soft);
+  }
+  .tree-name.tree-folder {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* Wider modal variant for the structure paste area */
+  .modal.modal-wide {
+    max-width: 720px;
+  }
+  .structure-paste {
+    width: 100%;
+    min-height: 280px;
+    margin: 12px 0;
+    padding: 12px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--bg);
+    resize: vertical;
+  }
+  .structure-paste:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+
+  .section {
+    background: var(--bg-card); border: 1px solid var(--line);
+    border-radius: 8px; overflow: hidden;
+  }
+  .section-header {
+    padding: 16px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--bg-soft);
+    cursor: pointer;
+    user-select: none;
+    transition: background 120ms;
+  }
+  .section-header:hover { background: #ede9df; }
+  .section.expanded .section-header { border-bottom: 1px solid var(--line); }
+  .section-title { display: flex; align-items: center; gap: 10px; }
+  .section-title h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px;
+    color: var(--ink); font-weight: 600;
+  }
+  .section-meta {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 22px; padding: 0 8px; border-radius: 11px;
+    font-size: 11px; font-weight: 600; color: var(--ink-soft);
+    background: var(--bg-card); border: 1px solid var(--line-strong);
+  }
+  .chevron {
+    width: 16px; height: 16px;
+    color: var(--ink-soft);
+    transition: transform 200ms ease;
+    transform: rotate(0deg);
+  }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section-color { width: 10px; height: 10px; border-radius: 50%; }
+  .color-shipped { background: var(--accent); }
+  .color-wip { background: #d4a574; }
+  .color-queued { background: #6699bb; }
+  .color-future { background: #9c7fb4; }
+  .color-critical { background: #c8504c; }
+
+  /* Collapse content */
+  .section-content {
+    max-height: 100000px;
+    overflow: hidden;
+    transition: max-height 350ms ease;
+  }
+  .section.collapsed .section-content {
+    max-height: 0;
+  }
+
+  .item-list { list-style: none; padding: 0; }
+  .item-list:empty::before {
+    content: 'Nothing here. Drag items from other sections or add a new one below.';
+    display: block; padding: 24px; color: var(--ink-dim);
+    font-style: italic; font-size: 13px; text-align: center;
+  }
+  .item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 20px; border-bottom: 1px solid var(--line);
+    transition: background 100ms; position: relative;
+  }
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: var(--bg-soft); }
+  .item.dragging { opacity: 0.4; }
+  .item.drag-over-top { border-top: 2px solid var(--accent); }
+  .item.drag-over-bottom { border-bottom: 2px solid var(--accent); }
+  .item-handle {
+    color: var(--ink-dim); font-size: 14px; user-select: none;
+    padding-top: 2px; cursor: grab; line-height: 1;
+  }
+  .item-handle:active { cursor: grabbing; }
+  .item-check {
+    margin-top: 2px; width: 18px; height: 18px;
+    border: 1.5px solid var(--line-strong); border-radius: 4px;
+    cursor: pointer; flex-shrink: 0; background: var(--bg-card);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 150ms; color: white; font-size: 12px; font-weight: 700;
+  }
+  .item-check:hover { border-color: var(--ink-soft); }
+  .item-check.checked { background: var(--accent); border-color: var(--accent); }
+  .item-body { flex: 1; min-width: 0; }
+  .item-title {
+    font-size: 14px; font-weight: 600; color: var(--ink);
+    line-height: 1.4; margin-bottom: 2px;
+    cursor: text; padding: 2px 4px; margin-left: -4px;
+    border-radius: 3px; word-break: break-word;
+  }
+  .item-title:hover { background: rgba(0,0,0,0.04); }
+  .item-title:focus { outline: 2px solid var(--accent); background: white; }
+  .item-notes {
+    font-size: 12px; color: var(--ink-soft); line-height: 1.5;
+    cursor: text; padding: 2px 4px; margin-left: -4px;
+    border-radius: 3px; word-break: break-word; min-height: 18px;
+  }
+  .item-notes:hover { background: rgba(0,0,0,0.04); }
+  .item-notes:focus { outline: 2px solid var(--accent); background: white; }
+  .item-notes:empty::before {
+    content: 'Click to add notes…'; color: var(--ink-dim); font-style: italic;
+  }
+  .item-actions {
+    display: flex; gap: 4px; opacity: 0; transition: opacity 150ms;
+  }
+  .item:hover .item-actions { opacity: 1; }
+  .item-action-btn {
+    background: transparent; border: none; color: var(--ink-dim);
+    cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 14px;
+  }
+  .item-action-btn:hover { background: var(--bg-soft); color: var(--ink); }
+  .add-bar {
+    padding: 12px 20px; border-top: 1px solid var(--line);
+    background: var(--bg-soft); display: flex; gap: 8px;
+  }
+  .add-input {
+    flex: 1; padding: 8px 12px; border: 1px solid var(--line-strong);
+    border-radius: 6px; background: var(--bg-card);
+    font-family: 'Inter', sans-serif; font-size: 13px; color: var(--ink);
+  }
+  .add-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .add-btn {
+    padding: 8px 14px; background: var(--ink); color: var(--bg);
+    border: none; border-radius: 6px; cursor: pointer;
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .add-btn:hover { background: #2a2a28; }
+  .section.drop-target .section-header { background: var(--accent-soft); }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(28,28,26,0.6);
+    display: none; justify-content: center; align-items: center; z-index: 200;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--bg-card); border-radius: 12px; padding: 28px;
+    max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h2 {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-size: 22px; margin-bottom: 12px;
+  }
+  .modal p {
+    font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin-bottom: 16px;
+  }
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px;
+  }
+  .drop-zone {
+    border: 2px dashed var(--line-strong); border-radius: 8px;
+    padding: 32px; text-align: center; color: var(--ink-soft);
+    margin: 16px 0; transition: all 150ms;
+  }
+  .drop-zone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+  .drop-zone input[type="file"] { display: none; }
+  .sidebar-actions {
+    margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .sidebar-actions .btn { width: 100%; }
+  @media print {
+    .actions, .sidebar, .add-bar, .item-actions, .app-header, .reminder-banner { display: none; }
+    .layout { grid-template-columns: 1fr; padding: 0; }
+    .section { break-inside: avoid; }
+    .section.collapsed .section-content { max-height: none; }
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; }
+    .reminder-banner { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <svg width="38" height="24" viewBox="0 0 56 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M31 8 C31 4, 28.5 2.5, 26 2.5 C23.5 2.5, 21.5 4.5, 22 7.5"
+            stroke="#1c1c1a" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      <path d="M31 8 Q31 11.6, 29.5 14"
+            stroke="#1c1c1a" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      <path d="M5 28 Q 28 14, 51 28"
+            stroke="#1c1c1a" stroke-width="3.8" stroke-linecap="round" fill="none"/>
+    </svg>
+    <div class="brand-text">
+      <h1>Hanger</h1>
+      <p>Project Plan</p>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="openImport()">Import .md</button>
+    <button class="btn" onclick="copyMarkdown()">Copy</button>
+    <button class="btn btn-primary" onclick="downloadMarkdown()">Export .md</button>
+  </div>
+</header>
+
+<div class="reminder-banner hide" id="reminder-banner">
+  <div class="reminder-text">
+    <span class="reminder-icon">💾</span>
+    <span id="reminder-message">It's been a while since your last export.</span>
+  </div>
+  <div class="reminder-actions">
+    <button class="btn" onclick="dismissReminder()">Remind Me Later</button>
+    <button class="btn btn-amber" onclick="downloadMarkdown()">Export Now</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h2>Progress</h2>
+    <div class="stat-row"><span class="stat-label">Shipped</span><span class="stat-value" id="stat-shipped">0</span></div>
+    <div class="stat-row"><span class="stat-label">In Progress</span><span class="stat-value" id="stat-wip">0</span></div>
+    <div class="stat-row"><span class="stat-label">Queued</span><span class="stat-value" id="stat-queued">0</span></div>
+    <div class="stat-row"><span class="stat-label">Future</span><span class="stat-value" id="stat-future">0</span></div>
+    <div class="stat-row"><span class="stat-label">Pre-Production</span><span class="stat-value" id="stat-critical">0</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
+    <div class="progress-caption" id="progress-caption">0% shipped</div>
+    <div class="export-status" id="export-status">Never exported</div>
+
+    <div class="collapse-controls">
+      <button class="collapse-link" onclick="expandAll()">Expand All</button>
+      <button class="collapse-link" onclick="collapseAll()">Collapse All</button>
+    </div>
+
+    <h2 style="margin-top: 24px;">Tips</h2>
+    <p style="font-size: 12px; color: var(--ink-soft); line-height: 1.6;">
+      Click section headers to collapse. Drag items between sections. Click any text to edit inline. Cmd+S exports.
+    </p>
+
+    <div class="sidebar-actions">
+      <button class="btn btn-danger" onclick="confirmReset()">Reset to Defaults</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="vision-card">
+      <h2>Vision</h2>
+      <div id="vision-display"></div>
+      <textarea class="vision-edit" id="vision-edit" style="display:none;"></textarea>
+    </div>
+    <div id="sections"></div>
+    <div class="structure-card" id="structure-card" style="display:none;">
+      <div class="structure-header">
+        <h2>Project Structure</h2>
+        <button class="btn structure-edit-btn" onclick="openStructureEdit()">Edit</button>
+      </div>
+      <div class="structure-command-wrap" id="structure-command-wrap" style="display:none;">
+        <button class="structure-copy-btn" onclick="copyStructureCommand()" title="Copy command to clipboard">Copy</button>
+        <pre class="structure-command" id="structure-command"></pre>
+      </div>
+      <div class="structure-tree" id="structure-tree"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <h2>Import existing plan</h2>
+    <p>Drop your <code>project-plan.md</code> file here. The current plan in your browser will be replaced.</p>
+    <div class="drop-zone" id="drop-zone">
+      <p style="font-weight: 500;">Drag and drop your .md file here</p>
+      <p style="margin-top: 6px; font-size: 12px;">or</p>
+      <label class="btn" style="margin-top: 12px; display:inline-block; cursor: pointer;">
+        Choose file
+        <input type="file" accept=".md,.txt,text/markdown,text/plain" id="file-input">
+      </label>
+    </div>
+    <p style="font-size: 12px; color: var(--ink-dim);">
+      <strong>Heads up:</strong> Your file on disk is never modified. To save changes, click Export.
+    </p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeImport()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reset-modal">
+  <div class="modal">
+    <h2>Reset to defaults?</h2>
+    <p>This will erase the current plan in your browser and reload the original built-in plan. Items you've added or edited will be lost (unless you've exported them).</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeReset()">Cancel</button>
+      <button class="btn btn-danger" onclick="doReset()">Reset</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="structure-modal">
+  <div class="modal modal-wide">
+    <h2>Update project structure</h2>
+    <p>Re-run the find command in Terminal and paste the output below. You can paste either the raw file list (lines starting with <code>./</code>) or the full markdown structure section with code fences. Don't forget to Export afterward to save to your <code>.md</code> backup.</p>
+    <textarea class="structure-paste" id="structure-paste" placeholder="Paste the output of the find command here..."></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeStructureEdit()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStructureEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SECTIONS = [
+  { key: 'shipped',  title: 'Shipped',       color: 'color-shipped',  emoji: '✅' },
+  { key: 'wip',      title: 'In Progress',   color: 'color-wip',      emoji: '🟡' },
+  { key: 'queued',   title: 'Queued — Next', color: 'color-queued',   emoji: '🔵' },
+  { key: 'future',   title: 'Future Polish', color: 'color-future',   emoji: '🟢' },
+  { key: 'critical', title: 'Pre-Production', color: 'color-critical', emoji: '🔴' },
+];
+
+const STORAGE_KEY = 'hanger-plan-v1';
+const META_KEY = 'hanger-plan-meta';
+const COLLAPSE_KEY = 'hanger-plan-collapse';
+
+const REMINDER_DAYS = 7;
+const SNOOZE_HOURS = 24;
+
+// Default collapse state — Shipped collapsed, everything else expanded
+const DEFAULT_COLLAPSED = { shipped: true, wip: false, queued: false, future: false, critical: false };
+
+const DEFAULT_STATE = {
+  vision: 'A personal wardrobe app that lets you photograph what you own, take it shopping with you ("Garment Bag" mode), build a wishlist, and use intelligent color matching to think about pairings. Cream-and-ink design language, Fraunces serif wordmark, Inter body, sage accent.',
+  structure: '',
+  sections: {
+    shipped: [
+      { id: 1, title: 'Closet tab', notes: 'Grid of items, filter chips, search, stats row' },
+      { id: 2, title: 'Wishlist tab', notes: 'Same patterns + shopping notes (store, price, style)' },
+      { id: 3, title: '"I Bought It → Add to Closet"', notes: 'Wishlist → Closet conversion flow' },
+      { id: 4, title: 'Shopping Mode (now BAG)', notes: 'Swipeable item carousel for in-store reference' },
+      { id: 5, title: 'Settings tab', notes: 'Categories, stats, hints, about' },
+      { id: 6, title: 'Add Item screen', notes: 'Category picker, name, size, notes, photos, care tag' },
+      { id: 7, title: 'Edit Item screen', notes: 'Full editing including reorder + delete photos' },
+      { id: 8, title: 'Item Detail screen', notes: 'Photo carousel, palette, pairings, notes, care tag' },
+      { id: 9, title: 'Full-screen photo viewer', notes: 'Pinch zoom + drag pan' },
+      { id: 10, title: 'Help center', notes: 'Searchable topic articles' },
+      { id: 11, title: 'Square photo processing', notes: '1500px max, 80% JPEG, ~500KB files' },
+      { id: 12, title: 'Care tag separate slot', notes: '1200px max' },
+      { id: 13, title: 'Trousers → Pants rename', notes: 'With proper schema migration' },
+      { id: 14, title: 'Auto-dismiss photo hints', notes: '"Tap to view" shows once then never again' },
+      { id: 15, title: 'Custom hanger SVG logo', notes: 'Locked: arch 3.8, upper nudge 3.0, stem curve 0.5' },
+      { id: 16, title: 'App icon (light)', notes: '4x supersampling + transparent compositing for max crispness' },
+      { id: 17, title: 'Splash screen animation', notes: 'Drops, catches, rocks (6 damped swings), tagline scale-fade' },
+      { id: 18, title: 'Fraunces wordmark', notes: '"Hanger" headline, YOUR WARDROBE tagline in Inter' },
+      { id: 19, title: 'Build variant logic', notes: 'Different bundle IDs and names for dev/preview/production' },
+      { id: 20, title: 'Always-play splash override', notes: 'Currently hardcoded for dev iteration' },
+      { id: 21, title: 'Standalone HTML splash demo', notes: 'For showing off outside the app' },
+      { id: 22, title: 'Closet header refinement', notes: 'Centered brand lockup, optical-shifted subtitle' },
+      { id: 23, title: 'Up to 5 photos per item', notes: 'Schema migration from photoUri to photoUris[]' },
+      { id: 24, title: 'Up to 3 care tag photos', notes: 'Schema migration from careTagUri to careTagUris[]' },
+      { id: 25, title: 'PhotoStrip reusable component', notes: 'Configurable max + reorder support' },
+      { id: 26, title: 'Cover photo concept', notes: 'First photo is shown on Closet cards' },
+      { id: 27, title: 'Drag-to-reorder photos', notes: 'Long-press to drag' },
+      { id: 28, title: 'Carousel + dots on Item Detail', notes: 'Auto-shows for 2+ photos' },
+      { id: 29, title: 'Care tag carousel', notes: 'Same pattern for multiple care tag photos' },
+      { id: 30, title: 'Color extraction', notes: 'Native library extracts 3 dominant colors at save' },
+      { id: 31, title: 'Near-white/black filtering', notes: 'Excludes photo backgrounds and shadow artifacts' },
+      { id: 32, title: 'PALETTE row on Item Detail', notes: '3 circle swatches, tappable to drill in' },
+      { id: 33, title: 'Color pairing algorithm', notes: 'Analogous + muted complementary, wardrobe-constrained' },
+      { id: 34, title: 'Pairings stored on item', notes: 'Deterministic from input, computed at save time' },
+      { id: 35, title: 'PAIRS WELL WITH row', notes: '4 circle swatches, tappable to drill in' },
+      { id: 36, title: 'Backfill pairings for existing items', notes: 'Edit Item recomputes pairings if missing' },
+      { id: 37, title: 'Palette list screen', notes: 'Tap row → page of large rectangular swatches' },
+      { id: 38, title: 'Pairings list screen', notes: 'Same pattern for suggested pairings' },
+      { id: 39, title: 'Single swatch page', notes: 'Tap any swatch → fills page (fabric matching aid)' },
+      { id: 40, title: 'Drag photos in Edit Item', notes: 'Long-press, drag, drop' },
+      { id: 41, title: 'Drag categories in Settings', notes: 'Long-press to drag between selected list' },
+      { id: 42, title: 'Drag stats in Settings', notes: 'Same pattern' },
+      { id: 43, title: 'Consistent back arrow', notes: 'Plain back arrow in top-left across secondary screens' },
+      { id: 44, title: 'Removed floating circle button', notes: 'Replaced with header-row back arrow' },
+      { id: 45, title: 'Removed X close button', notes: 'Replaced with consistent back arrow' },
+      { id: 46, title: 'Photo viewer chrome refinement', notes: 'Cream bg matching app, hint below' },
+    ],
+    wip: [
+      { id: 47, title: 'Closet header centering', notes: 'Brand lockup needs true screen-center (search button absolute)' },
+      { id: 48, title: 'Deploy max-quality icon', notes: 'Copy latest icon-dev.png to icon-dev/icon-preview/icon.png in project' },
+    ],
+    queued: [
+      { id: 49, title: 'Rename SHOP → BAG', notes: 'Tab label change. Tab icon optional' },
+      { id: 50, title: 'Garment Bag header', notes: 'Matches Wishlist/Settings header pattern' },
+      { id: 51, title: 'Remove X from BAG header', notes: 'Tab bar handles navigation away' },
+      { id: 52, title: 'Add new categories', notes: '"Other" catch-all; others as named' },
+    ],
+    future: [
+      { id: 53, title: 'Test drag-reorder in preview build', notes: 'Was laggy in dev; may be fine in release' },
+      { id: 54, title: 'Tab icons using HangerLogo', notes: 'Replace Ionicons home icon for Closet tab' },
+      { id: 55, title: 'Custom in-app photo cropper', notes: 'iOS native cropper has zoom-out limit' },
+      { id: 56, title: 'Dark mode flourish on BAG', notes: 'Premium-feel shopping experience' },
+      { id: 57, title: 'Affiliate recommendations in help', notes: 'v2 monetization thinking' },
+      { id: 58, title: '"Why this pairs" labels', notes: 'Show analogous/complementary/neutral reasoning' },
+      { id: 59, title: 'Subject-centered cropping (Apple Vision)', notes: 'New native module + rebuild' },
+      { id: 60, title: 'Cloud backup / sync', notes: 'Multi-session: auth + storage + conflict resolution' },
+    ],
+    critical: [
+      { id: 61, title: 'Restore variant-aware splash', notes: 'Revert hardcoded return true to launch-count limit' },
+      { id: 62, title: 'App Store metadata', notes: 'Name, description, screenshots, keywords, category' },
+      { id: 63, title: 'Privacy policy', notes: 'Host at wardrobehanger.app/privacy' },
+      { id: 64, title: 'TestFlight setup', notes: 'Production build → eas submit → Apple Beta Review' },
+      { id: 65, title: 'Beta tester invites', notes: 'Core feedback group before public' },
+      { id: 66, title: 'Re-test on production build', notes: 'Confirm performance in release mode' },
+    ],
+  },
+};
+
+let state = loadState();
+let meta = loadMeta();
+let collapsed = loadCollapsed();
+let nextId = computeNextId();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.warn('Failed to load state:', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+function loadMeta() {
+  try {
+    const raw = localStorage.getItem(META_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.warn('Failed to load meta:', e); }
+  return { lastExport: null, lastEdit: null, snoozedUntil: null };
+}
+
+function loadCollapsed() {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { console.warn('Failed to load collapse state:', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_COLLAPSED));
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { console.warn('Failed to save state:', e); }
+}
+
+function saveMeta() {
+  try { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+  catch (e) { console.warn('Failed to save meta:', e); }
+}
+
+function saveCollapsed() {
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed)); }
+  catch (e) { console.warn('Failed to save collapse state:', e); }
+}
+
+function markEdited() {
+  meta.lastEdit = new Date().toISOString();
+  saveMeta();
+  updateExportStatus();
+  updateReminder();
+}
+
+function markExported() {
+  meta.lastExport = new Date().toISOString();
+  meta.snoozedUntil = null;
+  saveMeta();
+  updateExportStatus();
+  updateReminder();
+}
+
+function updateExportStatus() {
+  const el = document.getElementById('export-status');
+  if (!meta.lastExport) { el.textContent = 'Never exported'; return; }
+  const exportDate = new Date(meta.lastExport);
+  const now = new Date();
+  const diffMs = now - exportDate;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffDays > 0) {
+    el.textContent = 'Last export: ' + diffDays + ' day' + (diffDays === 1 ? '' : 's') + ' ago';
+  } else if (diffHours > 0) {
+    el.textContent = 'Last export: ' + diffHours + ' hour' + (diffHours === 1 ? '' : 's') + ' ago';
+  } else {
+    el.textContent = 'Last export: just now';
+  }
+}
+
+function updateReminder() {
+  const banner = document.getElementById('reminder-banner');
+  if (shouldShowReminder()) {
+    document.getElementById('reminder-message').textContent = buildReminderMessage();
+    banner.classList.remove('hide');
+  } else {
+    banner.classList.add('hide');
+  }
+}
+
+function shouldShowReminder() {
+  if (!meta.lastEdit) return false;
+  if (meta.snoozedUntil && new Date() < new Date(meta.snoozedUntil)) return false;
+  if (!meta.lastExport) {
+    const daysSinceEdit = (new Date() - new Date(meta.lastEdit)) / (1000 * 60 * 60 * 24);
+    return daysSinceEdit >= REMINDER_DAYS;
+  }
+  if (new Date(meta.lastEdit) <= new Date(meta.lastExport)) return false;
+  const daysSinceExport = (new Date() - new Date(meta.lastExport)) / (1000 * 60 * 60 * 24);
+  return daysSinceExport >= REMINDER_DAYS;
+}
+
+function buildReminderMessage() {
+  if (!meta.lastExport) return "You have unsaved changes and haven't exported yet. Save a backup?";
+  const daysSinceExport = Math.floor((new Date() - new Date(meta.lastExport)) / (1000 * 60 * 60 * 24));
+  return "You haven't exported in " + daysSinceExport + " days, and you have new changes.";
+}
+
+function dismissReminder() {
+  const snoozeUntil = new Date();
+  snoozeUntil.setHours(snoozeUntil.getHours() + SNOOZE_HOURS);
+  meta.snoozedUntil = snoozeUntil.toISOString();
+  saveMeta();
+  document.getElementById('reminder-banner').classList.add('hide');
+  showToast("Reminder snoozed for " + SNOOZE_HOURS + " hours");
+}
+
+function computeNextId() {
+  let max = 0;
+  for (const key of Object.keys(state.sections)) {
+    for (const item of state.sections[key]) {
+      if (item.id > max) max = item.id;
+    }
+  }
+  return max + 1;
+}
+
+function toggleSection(key) {
+  collapsed[key] = !collapsed[key];
+  saveCollapsed();
+  const sectionEl = document.querySelector('[data-section="' + key + '"]');
+  if (sectionEl) {
+    if (collapsed[key]) {
+      sectionEl.classList.remove('expanded');
+      sectionEl.classList.add('collapsed');
+    } else {
+      sectionEl.classList.remove('collapsed');
+      sectionEl.classList.add('expanded');
+    }
+  }
+}
+
+function expandAll() {
+  for (const key of Object.keys(collapsed)) collapsed[key] = false;
+  saveCollapsed();
+  renderSections();
+}
+
+function collapseAll() {
+  for (const key of Object.keys(collapsed)) collapsed[key] = true;
+  saveCollapsed();
+  renderSections();
+}
+
+function render() {
+  renderVision();
+  renderSections();
+  renderStructure();
+  renderStats();
+  saveState();
+  updateExportStatus();
+  updateReminder();
+}
+
+function renderVision() {
+  document.getElementById('vision-display').textContent = state.vision;
+  document.getElementById('vision-edit').value = state.vision;
+}
+
+/**
+ * Render the Project Structure card.
+ *
+ * The structure markdown contains a fenced code block with the bash `find`
+ * command, followed by another fenced code block with the actual file list
+ * (one path per line, starting with `./`). We extract both: the command goes
+ * into the command bar at the top, the file list builds the tree.
+ *
+ * The tree is built by walking each path's segments, building a nested
+ * structure, then rendering folders before files at each level.
+ */
+function renderStructure() {
+  const card = document.getElementById('structure-card');
+  const commandWrap = document.getElementById('structure-command-wrap');
+  const commandBox = document.getElementById('structure-command');
+  const treeBox = document.getElementById('structure-tree');
+  if (!card || !commandBox || !treeBox || !commandWrap) return;
+  const text = (state.structure || '').trim();
+  if (!text) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+
+  // Pull all fenced code blocks out of the section
+  const fenceRegex = /```[a-zA-Z]*\n([\s\S]*?)```/g;
+  const codeBlocks = [];
+  let m;
+  while ((m = fenceRegex.exec(text)) !== null) {
+    codeBlocks.push(m[1].trim());
+  }
+
+  // Identify which block is the command vs the file list:
+  // command starts with `find`, file list lines start with `./` or `.\`
+  let commandText = '';
+  let fileListText = '';
+  for (const block of codeBlocks) {
+    const firstLine = block.split('\n')[0].trim();
+    if (/^find\b/.test(firstLine)) {
+      commandText = block;
+    } else if (/^\.\//.test(firstLine) || /^\.\\/.test(firstLine)) {
+      fileListText = block;
+    }
+  }
+  // Fallback: if we couldn't classify, treat the last block as the file list
+  if (!fileListText && codeBlocks.length > 0) {
+    fileListText = codeBlocks[codeBlocks.length - 1];
+  }
+
+  // Command bar at the top (wrapped so the Copy button can be positioned)
+  if (commandText) {
+    commandWrap.style.display = 'block';
+    commandBox.textContent = commandText;
+  } else {
+    commandWrap.style.display = 'none';
+  }
+
+  // Parse file list into a tree
+  const lines = fileListText
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && /^\.\//.test(l));
+
+  const tree = { name: '.', folders: {}, files: [] };
+  for (const path of lines) {
+    const parts = path.replace(/^\.\//, '').split('/');
+    let node = tree;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const folderName = parts[i];
+      if (!node.folders[folderName]) {
+        node.folders[folderName] = { name: folderName, folders: {}, files: [] };
+      }
+      node = node.folders[folderName];
+    }
+    const fileName = parts[parts.length - 1];
+    if (fileName) node.files.push(fileName);
+  }
+
+  function iconFor(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    if (ext === 'tsx') return '⚛️';
+    if (ext === 'ts')  return '📘';
+    if (ext === 'js' || ext === 'py') return '📜';
+    if (ext === 'json') return '⚙️';
+    if (ext === 'md') return '📝';
+    if (['png','jpg','jpeg','gif','svg','webp'].includes(ext)) return '🖼️';
+    return '📄';
+  }
+
+  function renderNode(node, prefix) {
+    const html = [];
+    const folderNames = Object.keys(node.folders).sort((a, b) => a.localeCompare(b));
+    const fileNames = [...node.files].sort((a, b) => a.localeCompare(b));
+    const entries = [
+      ...folderNames.map((n) => ({ kind: 'folder', name: n, node: node.folders[n] })),
+      ...fileNames.map((n) => ({ kind: 'file', name: n })),
+    ];
+    entries.forEach((entry, idx) => {
+      const last = idx === entries.length - 1;
+      const branch = last ? '└── ' : '├── ';
+      if (entry.kind === 'folder') {
+        html.push(
+          '<div class="tree-row">' +
+          '<span class="tree-prefix">' + escapeHtml(prefix + branch) + '</span>' +
+          '<span class="tree-icon">📁</span>' +
+          '<span class="tree-name tree-folder">' + escapeHtml(entry.name) + '/</span>' +
+          '</div>'
+        );
+        const childPrefix = prefix + (last ? '    ' : '│   ');
+        html.push(renderNode(entry.node, childPrefix));
+      } else {
+        html.push(
+          '<div class="tree-row">' +
+          '<span class="tree-prefix">' + escapeHtml(prefix + branch) + '</span>' +
+          '<span class="tree-icon">' + iconFor(entry.name) + '</span>' +
+          '<span class="tree-name">' + escapeHtml(entry.name) + '</span>' +
+          '</div>'
+        );
+      }
+    });
+    return html.join('');
+  }
+
+  const rootHtml =
+    '<div class="tree-row tree-root">' +
+    '<span class="tree-icon">📁</span>' +
+    '<span class="tree-name tree-folder">.</span>' +
+    '</div>' +
+    renderNode(tree, '');
+
+  treeBox.innerHTML = rootHtml;
+}
+
+/**
+ * Open the structure edit modal, pre-filled with current raw structure text
+ * so the user has the option to edit-in-place if they want, but typically
+ * they'll select-all and paste fresh `find` output.
+ */
+function openStructureEdit() {
+  const modal = document.getElementById('structure-modal');
+  const paste = document.getElementById('structure-paste');
+  // Pre-fill with current file list so the user has a reference (and can
+  // easily extend it if they want, though paste-and-replace is the norm).
+  paste.value = state.structure || '';
+  modal.classList.add('show');
+  setTimeout(() => paste.focus(), 50);
+}
+
+function closeStructureEdit() {
+  document.getElementById('structure-modal').classList.remove('show');
+}
+
+/**
+ * Save the pasted content as the new structure.
+ *
+ * Acceptable input formats:
+ *  - Raw `find` output: lines starting with ./
+ *  - Full markdown structure section with one or more code fences
+ *
+ * The pasted text is normalized into the same fenced-block format used
+ * by the rest of the markdown so that re-exports stay consistent.
+ */
+function saveStructureEdit() {
+  const paste = document.getElementById('structure-paste');
+  const raw = (paste.value || '').trim();
+  if (!raw) {
+    showToast('Nothing to save — paste some output first');
+    return;
+  }
+
+  // Detect: does the paste contain markdown code fences?
+  const hasFences = /```/.test(raw);
+
+  let commandText = '';
+  let fileListText = '';
+
+  if (hasFences) {
+    // Pasted content contains code fences — parse them out
+    const fenceRegex = /```[a-zA-Z]*\n([\s\S]*?)```/g;
+    let m;
+    while ((m = fenceRegex.exec(raw)) !== null) {
+      const block = m[1].trim();
+      const firstLine = block.split('\n')[0].trim();
+      if (/^find\b/.test(firstLine)) {
+        commandText = block;
+      } else if (/^\.\//.test(firstLine) || /^\.\\/.test(firstLine)) {
+        fileListText = block;
+      }
+    }
+  } else {
+    // Raw output — interpret line by line. Lines starting with `./` are
+    // file paths; anything else is ignored.
+    const pathLines = raw.split('\n').filter((l) => /^\.\//.test(l.trim()));
+    fileListText = pathLines.join('\n');
+    // Preserve the existing command from current state, if present
+    const existingCommandMatch = /```[a-zA-Z]*\n(find[\s\S]*?)```/.exec(state.structure || '');
+    if (existingCommandMatch) {
+      commandText = existingCommandMatch[1].trim();
+    }
+  }
+
+  if (!fileListText) {
+    showToast('No file paths found. Paste lines that start with ./');
+    return;
+  }
+
+  // Build the canonical structure text: explanatory line, command block,
+  // file list block. Matches the format used in project-plan.md.
+  const parts = [];
+  parts.push('Re-run this command from the project root and paste the output below to refresh:');
+  parts.push('');
+  if (commandText) {
+    parts.push('```');
+    parts.push(commandText);
+    parts.push('```');
+    parts.push('');
+  }
+  parts.push('```');
+  parts.push(fileListText);
+  parts.push('```');
+
+  state.structure = parts.join('\n');
+  markEdited();
+  closeStructureEdit();
+  render();
+  showToast('Structure updated — click Export to save your .md backup');
+}
+
+/**
+ * Copy the current command text to clipboard. Shows brief inline feedback
+ * on the button itself ("Copied!") then reverts.
+ */
+function copyStructureCommand() {
+  const commandBox = document.getElementById('structure-command');
+  const btn = document.querySelector('.structure-copy-btn');
+  const text = commandBox ? commandBox.textContent : '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) {
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove('copied');
+      }, 1500);
+    }
+  }).catch(() => {
+    showToast('Copy failed — select text manually');
+  });
+}
+
+document.getElementById('vision-display').addEventListener('click', () => {
+  const display = document.getElementById('vision-display');
+  const edit = document.getElementById('vision-edit');
+  display.style.display = 'none';
+  edit.style.display = 'block';
+  edit.focus();
+});
+document.getElementById('vision-edit').addEventListener('blur', () => {
+  const edit = document.getElementById('vision-edit');
+  if (state.vision !== edit.value) {
+    state.vision = edit.value;
+    markEdited();
+  }
+  edit.style.display = 'none';
+  document.getElementById('vision-display').style.display = 'block';
+  render();
+});
+
+function renderSections() {
+  const container = document.getElementById('sections');
+  container.innerHTML = '';
+  for (const sec of SECTIONS) {
+    const items = state.sections[sec.key] || [];
+    const isCollapsed = collapsed[sec.key];
+    const sectionEl = document.createElement('section');
+    sectionEl.className = 'section ' + (isCollapsed ? 'collapsed' : 'expanded');
+    sectionEl.dataset.section = sec.key;
+    sectionEl.innerHTML = `
+      <div class="section-header" data-toggle="${sec.key}">
+        <div class="section-title">
+          <span class="section-color ${sec.color}"></span>
+          <h3>${escapeHtml(sec.title)}</h3>
+        </div>
+        <div class="section-meta">
+          <span class="section-badge">${items.length}</span>
+          <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 6 8 10 12 6"/>
+          </svg>
+        </div>
+      </div>
+      <div class="section-content">
+        <ul class="item-list" data-section="${sec.key}"></ul>
+        <div class="add-bar">
+          <input class="add-input" type="text" placeholder="Add a new item…">
+          <button class="add-btn">Add</button>
+        </div>
+      </div>
+    `;
+    const list = sectionEl.querySelector('.item-list');
+    for (const item of items) list.appendChild(renderItem(item, sec.key));
+
+    // Header click toggles collapse
+    const header = sectionEl.querySelector('.section-header');
+    header.addEventListener('click', (e) => {
+      toggleSection(sec.key);
+    });
+
+    // Drag-over auto-expands a collapsed section
+    sectionEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      sectionEl.classList.add('drop-target');
+      if (collapsed[sec.key]) {
+        collapsed[sec.key] = false;
+        saveCollapsed();
+        sectionEl.classList.remove('collapsed');
+        sectionEl.classList.add('expanded');
+      }
+    });
+    sectionEl.addEventListener('dragleave', (e) => {
+      if (!sectionEl.contains(e.relatedTarget)) sectionEl.classList.remove('drop-target');
+    });
+    sectionEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      sectionEl.classList.remove('drop-target');
+      const data = parseDragData(e);
+      if (!data.id) return;
+      if (e.target.closest('.item')) return;
+      moveItem(data.id, data.fromSection, sec.key, state.sections[sec.key].length);
+    });
+
+    const input = sectionEl.querySelector('.add-input');
+    const addBtn = sectionEl.querySelector('.add-btn');
+    addBtn.addEventListener('click', () => addItemFromInput(input, sec.key));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); addItemFromInput(input, sec.key); }
+    });
+    // Stop input clicks from toggling section
+    sectionEl.querySelector('.add-bar').addEventListener('click', (e) => e.stopPropagation());
+
+    container.appendChild(sectionEl);
+  }
+}
+
+function renderItem(item, sectionKey) {
+  const li = document.createElement('li');
+  li.className = 'item';
+  li.draggable = true;
+  li.dataset.itemId = item.id;
+  li.dataset.section = sectionKey;
+  const isShipped = sectionKey === 'shipped';
+  li.innerHTML = `
+    <span class="item-handle">⋮⋮</span>
+    <div class="item-check ${isShipped ? 'checked' : ''}">${isShipped ? '✓' : ''}</div>
+    <div class="item-body">
+      <div class="item-title" contenteditable="true" data-field="title" data-id="${item.id}">${escapeHtml(item.title)}</div>
+      <div class="item-notes" contenteditable="true" data-field="notes" data-id="${item.id}">${escapeHtml(item.notes || '')}</div>
+    </div>
+    <div class="item-actions">
+      <button class="item-action-btn" title="Delete" data-delete-id="${item.id}">✕</button>
+    </div>
+  `;
+  // Stop drag/click bubbling to section header
+  li.addEventListener('click', (e) => e.stopPropagation());
+
+  li.addEventListener('dragstart', (e) => {
+    li.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    const payload = JSON.stringify({ id: item.id, fromSection: sectionKey });
+    e.dataTransfer.setData('application/json', payload);
+    e.dataTransfer.setData('text/plain', payload);
+  });
+  li.addEventListener('dragend', () => {
+    li.classList.remove('dragging');
+    document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach((el) => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+  });
+  li.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = li.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    li.classList.remove('drag-over-top', 'drag-over-bottom');
+    if (e.clientY < mid) li.classList.add('drag-over-top');
+    else li.classList.add('drag-over-bottom');
+  });
+  li.addEventListener('dragleave', () => {
+    li.classList.remove('drag-over-top', 'drag-over-bottom');
+  });
+  li.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const data = parseDragData(e);
+    if (!data.id) return;
+    const rect = li.getBoundingClientRect();
+    const insertBefore = e.clientY < (rect.top + rect.height / 2);
+    let targetIdx = state.sections[sectionKey].findIndex((i) => i.id === item.id);
+    if (!insertBefore) targetIdx += 1;
+    moveItem(data.id, data.fromSection, sectionKey, targetIdx);
+    li.classList.remove('drag-over-top', 'drag-over-bottom');
+  });
+  li.querySelector('.item-check').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleShipped(item.id);
+  });
+  li.querySelector('[data-delete-id]').addEventListener('click', (e) => {
+    e.stopPropagation();
+    deleteItem(item.id);
+  });
+  li.querySelectorAll('[contenteditable]').forEach((el) => {
+    const originalValue = el.textContent.trim();
+    el.addEventListener('blur', () => {
+      const id = parseInt(el.dataset.id, 10);
+      const newValue = el.textContent.trim();
+      if (newValue !== originalValue) {
+        updateItem(id, el.dataset.field, newValue);
+      }
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.blur(); }
+    });
+    el.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+    el.addEventListener('click', (e) => e.stopPropagation());
+  });
+  return li;
+}
+
+function parseDragData(e) {
+  try {
+    const json = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
+    if (!json) return {};
+    return JSON.parse(json);
+  } catch (err) { return {}; }
+}
+
+function renderStats() {
+  let total = 0, shipped = 0;
+  for (const sec of SECTIONS) {
+    const count = (state.sections[sec.key] || []).length;
+    document.getElementById('stat-' + sec.key).textContent = count;
+    total += count;
+    if (sec.key === 'shipped') shipped = count;
+  }
+  const pct = total === 0 ? 0 : Math.round((shipped / total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-caption').textContent = pct + '% shipped (' + shipped + ' / ' + total + ')';
+}
+
+function addItemFromInput(input, sectionKey) {
+  const raw = input.value.trim();
+  if (!raw) return;
+  // Collapse any pasted newlines / runs of whitespace so an entry is always
+  // a single line. This prevents multi-line pastes from corrupting export.
+  const cleaned = raw.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  // Split "Title — notes" (em-dash or hyphen) the same way the importer does,
+  // so a pasted summary lands with a proper title and notes.
+  let title = cleaned, notes = '';
+  const dashMatch = cleaned.match(/^(.+?)\s+[—-]\s+(.+)$/);
+  if (dashMatch) { title = dashMatch[1].trim(); notes = dashMatch[2].trim(); }
+  state.sections[sectionKey].push({ id: nextId++, title, notes });
+  input.value = '';
+  markEdited();
+  render();
+}
+
+function deleteItem(id) {
+  for (const key of Object.keys(state.sections)) {
+    const idx = state.sections[key].findIndex((i) => i.id === id);
+    if (idx !== -1) { state.sections[key].splice(idx, 1); break; }
+  }
+  markEdited();
+  render();
+}
+
+function updateItem(id, field, value) {
+  // Keep titles/notes single-line so a pasted multi-line edit can't corrupt export.
+  const clean = (typeof value === 'string')
+    ? value.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ')
+    : value;
+  for (const key of Object.keys(state.sections)) {
+    const item = state.sections[key].find((i) => i.id === id);
+    if (item) {
+      item[field] = clean;
+      saveState();
+      markEdited();
+      return;
+    }
+  }
+}
+
+function moveItem(id, fromSection, toSection, toIndex) {
+  if (!state.sections[fromSection] || !state.sections[toSection]) return;
+  const fromList = state.sections[fromSection];
+  const idx = fromList.findIndex((i) => i.id === id);
+  if (idx === -1) return;
+  const [item] = fromList.splice(idx, 1);
+  let insertAt = toIndex;
+  if (fromSection === toSection && idx < toIndex) insertAt -= 1;
+  const toList = state.sections[toSection];
+  toList.splice(Math.max(0, Math.min(insertAt, toList.length)), 0, item);
+  markEdited();
+  render();
+}
+
+function toggleShipped(id) {
+  let cur = null;
+  for (const key of Object.keys(state.sections)) {
+    if (state.sections[key].some((i) => i.id === id)) { cur = key; break; }
+  }
+  if (!cur) return;
+  if (cur === 'shipped') moveItem(id, 'shipped', 'queued', state.sections.queued.length);
+  else moveItem(id, cur, 'shipped', state.sections.shipped.length);
+}
+
+function generateMarkdown() {
+  const dateStr = new Date().toISOString().split('T')[0];
+  let md = '# Hanger — Project Plan & Status\n\n';
+  md += '**Last updated**: ' + dateStr + '\n\n---\n\n## Vision\n\n';
+  md += state.vision.trim() + '\n\n---\n\n';
+  for (const sec of SECTIONS) {
+    const items = state.sections[sec.key] || [];
+    md += '## ' + sec.emoji + ' ' + sec.title + ' (' + items.length + ')\n\n';
+    if (items.length === 0) { md += '_No items._\n\n'; continue; }
+    for (const item of items) {
+      const t = (item.title || '').replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+      const n = (item.notes || '').replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+      md += '- **' + t + '**';
+      if (n) md += ' — ' + n;
+      md += '\n';
+    }
+    md += '\n';
+  }
+  if (state.structure && state.structure.trim()) {
+    md += '---\n\n## 📁 Project Structure\n\n';
+    md += state.structure.trim() + '\n';
+  }
+  return md;
+}
+
+function downloadMarkdown() {
+  const md = generateMarkdown();
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'project-plan.md';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  markExported();
+  showToast('Downloaded project-plan.md');
+}
+
+function copyMarkdown() {
+  navigator.clipboard.writeText(generateMarkdown()).then(() => {
+    markExported();
+    showToast('Copied markdown to clipboard');
+  }).catch(() => showToast('Copy failed — try Export instead'));
+}
+
+function openImport()  { document.getElementById('import-modal').classList.add('show'); }
+function closeImport() { document.getElementById('import-modal').classList.remove('show'); }
+function confirmReset(){ document.getElementById('reset-modal').classList.add('show'); }
+function closeReset()  { document.getElementById('reset-modal').classList.remove('show'); }
+
+function doReset() {
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  collapsed = JSON.parse(JSON.stringify(DEFAULT_COLLAPSED));
+  nextId = computeNextId();
+  saveCollapsed();
+  render();
+  closeReset();
+  showToast('Reset to default plan');
+}
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) importFile(file);
+});
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) importFile(file);
+});
+
+function importFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    const result = parseMarkdown(text);
+    if (!result.success) {
+      showToast(result.message || 'Could not parse the file');
+      return;
+    }
+    state = result.state;
+    nextId = computeNextId();
+    render();
+    closeImport();
+    const totalCount = Object.values(state.sections).reduce((a, b) => a + b.length, 0);
+    showToast('Imported ' + totalCount + ' items successfully');
+  };
+  reader.onerror = () => showToast('Failed to read file');
+  reader.readAsText(file);
+}
+
+function parseMarkdown(text) {
+  const newState = {
+    vision: '',
+    structure: '',
+    sections: { shipped: [], wip: [], queued: [], future: [], critical: [] },
+  };
+  if (!text || typeof text !== 'string') {
+    return { success: false, message: 'File is empty or unreadable' };
+  }
+  const lines = text.split('\n');
+  let currentSection = null;
+  let inVision = false;
+  let inStructure = false;
+  let visionLines = [];
+  let structureLines = [];
+  let id = 1;
+  const sectionMatchers = {
+    shipped:  /shipped/i,
+    wip:      /(in[\s-]?progress|wip)/i,
+    queued:   /queued/i,
+    future:   /future|polish/i,
+    critical: /pre.?production|pre.?app[\s-]?store|critical/i,
+  };
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const headingMatch = line.match(/^##\s+(.+)$/);
+    if (headingMatch) {
+      if (inVision && visionLines.length) {
+        newState.vision = visionLines.join('\n').trim();
+        visionLines = [];
+      }
+      if (inStructure && structureLines.length) {
+        newState.structure = structureLines.join('\n').trim();
+        structureLines = [];
+      }
+      inVision = false;
+      inStructure = false;
+      currentSection = null;
+      let heading = headingMatch[1].trim();
+      heading = heading.replace(/\s*\(\d+\)\s*$/, '');
+      heading = heading.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}]+\s*/u, '').trim();
+      if (/^vision$/i.test(heading)) {
+        inVision = true;
+        continue;
+      }
+      if (/^project\s+structure$/i.test(heading)) {
+        inStructure = true;
+        continue;
+      }
+      for (const [key, regex] of Object.entries(sectionMatchers)) {
+        if (regex.test(heading)) { currentSection = key; break; }
+      }
+      continue;
+    }
+    if (inVision) {
+      if (line.startsWith('---') || /^#/.test(line)) {
+        newState.vision = visionLines.join('\n').trim();
+        visionLines = [];
+        inVision = false;
+      } else {
+        visionLines.push(line);
+      }
+      continue;
+    }
+    if (inStructure) {
+      if (/^#/.test(line)) {
+        newState.structure = structureLines.join('\n').trim();
+        structureLines = [];
+        inStructure = false;
+      } else {
+        structureLines.push(line);
+      }
+      continue;
+    }
+    if (currentSection) {
+      if (/^_.*_$/.test(line.trim())) continue;
+      const bulletStart = line.match(/^\s*[-*]\s+(.+)$/);
+      if (!bulletStart) continue;
+      const content = bulletStart[1];
+      let title = '', notes = '';
+      const boldMatch = content.match(/^\*\*(.+?)\*\*(?:\s*[—-]\s*(.+))?$/);
+      if (boldMatch) {
+        title = boldMatch[1].trim();
+        notes = (boldMatch[2] || '').trim();
+      } else {
+        const dashMatch = content.match(/^(.+?)\s+[—-]\s+(.+)$/);
+        if (dashMatch) {
+          title = dashMatch[1].trim();
+          notes = dashMatch[2].trim();
+        } else {
+          title = content.trim();
+        }
+      }
+      title = title.replace(/^\*+|\*+$/g, '').trim();
+      notes = notes.replace(/^\*+|\*+$/g, '').trim();
+      if (title) {
+        newState.sections[currentSection].push({ id: id++, title, notes });
+      }
+    }
+  }
+  if (inVision && visionLines.length) {
+    newState.vision = visionLines.join('\n').trim();
+  }
+  if (inStructure && structureLines.length) {
+    newState.structure = structureLines.join('\n').trim();
+  }
+  const totalItems = Object.values(newState.sections).reduce((a, b) => a + b.length, 0);
+  if (totalItems === 0 && !newState.vision) {
+    return { success: false, message: 'No items or sections found. Check the file format.' };
+  }
+  if (!newState.vision) newState.vision = state.vision || DEFAULT_STATE.vision;
+  if (!newState.structure) newState.structure = state.structure || '';
+  return { success: true, state: newState };
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(window._toastTimeout);
+  window._toastTimeout = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+document.getElementById('import-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'import-modal') closeImport();
+});
+document.getElementById('reset-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'reset-modal') closeReset();
+});
+document.getElementById('structure-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'structure-modal') closeStructureEdit();
+});
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    downloadMarkdown();
+  }
+});
+
+// Refresh the relative time and reminder every minute
+setInterval(() => { updateExportStatus(); updateReminder(); }, 60000);
+// ---- Auto-scroll while dragging near viewport edges ----
+// Native HTML5 drag doesn't auto-scroll the window, so dragging an item to a
+// section far above/below the visible area is awkward. This watches the
+// cursor during a drag and scrolls the window when near the top/bottom edge.
+(function setupDragAutoScroll() {
+  const EDGE = 80;          // px from top/bottom that triggers scrolling
+  const MAX_SPEED = 18;     // px per frame at the very edge
+  let dragging = false;
+  let pointerY = 0;
+  let rafId = null;
+
+  function step() {
+    if (!dragging) { rafId = null; return; }
+    const vh = window.innerHeight;
+    let dy = 0;
+
+    if (pointerY < EDGE) {
+      // Near top — scroll up. Closer to edge = faster.
+      const intensity = (EDGE - pointerY) / EDGE;       // 0..1
+      dy = -Math.ceil(intensity * MAX_SPEED);
+    } else if (pointerY > vh - EDGE) {
+      // Near bottom — scroll down.
+      const intensity = (pointerY - (vh - EDGE)) / EDGE; // 0..1
+      dy = Math.ceil(intensity * MAX_SPEED);
+    }
+
+    if (dy !== 0) window.scrollBy(0, dy);
+    rafId = requestAnimationFrame(step);
+  }
+
+  function start() {
+    if (dragging) return;
+    dragging = true;
+    if (rafId === null) rafId = requestAnimationFrame(step);
+  }
+  function stop() {
+    dragging = false;
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  // Track cursor position throughout the drag (dragover fires continuously).
+  document.addEventListener('dragover', (e) => {
+    if (!dragging) return;
+    pointerY = e.clientY;
+  });
+
+  // Any item drag begins -> start the scroll loop; ends -> stop.
+  document.addEventListener('dragstart', start);
+  document.addEventListener('dragend', stop);
+  document.addEventListener('drop', stop);
+})();
+// ---- end auto-scroll ----
+
+render();
+render();
+</script>
+
+</body>
+</html>
