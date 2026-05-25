@@ -1407,6 +1407,19 @@ function renderItem(item, sectionKey) {
   li.addEventListener('click', (e) => e.stopPropagation());
 
   li.addEventListener('dragstart', (e) => {
+    // Only allow a reorder drag when it begins on the ⋮⋮ handle. Dragging
+    // anywhere else on the row (title, notes, checkbox, padding) does NOT
+    // reorder — so text can be selected and copied freely. The handle is the
+    // single, deliberate grab point for reordering.
+    if (!e.target.closest('.item-handle')) {
+      // Cancel the drag AND stop it propagating to the document-level
+      // dragstart listener that runs the auto-scroll loop — otherwise that
+      // loop starts but never gets a matching dragend, and it fights manual
+      // scrolling (snapping the view back up).
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     li.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     const payload = JSON.stringify({ id: item.id, fromSection: sectionKey });
