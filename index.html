@@ -1406,12 +1406,21 @@ function renderItem(item, sectionKey) {
   // Stop drag/click bubbling to section header
   li.addEventListener('click', (e) => e.stopPropagation());
 
+  // Track whether the press began on the ⋮⋮ handle. dragstart's e.target is
+  // unreliable here (it can report the row, not the handle, especially with
+  // user-select:none), so we record the real target on pointer-down and use
+  // that to decide if a reorder drag is allowed.
+  let pressStartedOnHandle = false;
+  li.addEventListener('pointerdown', (e) => {
+    pressStartedOnHandle = !!e.target.closest('.item-handle');
+  });
+
   li.addEventListener('dragstart', (e) => {
     // Only allow a reorder drag when it begins on the ⋮⋮ handle. Dragging
     // anywhere else on the row (title, notes, checkbox, padding) does NOT
     // reorder — so text can be selected and copied freely. The handle is the
     // single, deliberate grab point for reordering.
-    if (!e.target.closest('.item-handle')) {
+    if (!pressStartedOnHandle) {
       // Cancel the drag AND stop it propagating to the document-level
       // dragstart listener that runs the auto-scroll loop — otherwise that
       // loop starts but never gets a matching dragend, and it fights manual
@@ -1856,24 +1865,40 @@ setInterval(() => { updateExportStatus(); updateReminder(); }, 60000);
 // section far above/below the visible area is awkward. This watches the
 // cursor during a drag and scrolls the window when near the top/bottom edge.
 (function setupDragAutoScroll() {
-  const EDGE = 80;          // px from top/bottom that triggers scrolling
-  const MAX_SPEED = 18;     // px per frame at the very edge
+  // The top trigger zone must sit BELOW the sticky header + tabs bar (which
+  // occupy roughly the top 90px), otherwise the up-scroll zone is masked by
+  // the header and never triggers — the cause of "can't drag up past the
+  // visible screen." We measure the header dynamically and offset the top
+  // edge accordingly.
+  const EDGE = 90;          // px thickness of the trigger band
+  const MAX_SPEED = 22;     // px per frame at the very edge
   let dragging = false;
   let pointerY = 0;
   let rafId = null;
 
+  // How far down the top trigger band starts (below the sticky chrome).
+  function topInset() {
+    const header = document.querySelector('.app-header');
+    const tabs = document.querySelector('.tabs-bar');
+    let inset = 0;
+    if (header) inset += header.getBoundingClientRect().height;
+    if (tabs) inset += tabs.getBoundingClientRect().height;
+    return inset;
+  }
+
   function step() {
     if (!dragging) { rafId = null; return; }
     const vh = window.innerHeight;
+    const top = topInset();
     let dy = 0;
 
-    if (pointerY < EDGE) {
-      // Near top — scroll up. Closer to edge = faster.
-      const intensity = (EDGE - pointerY) / EDGE;       // 0..1
+    if (pointerY < top + EDGE) {
+      // Near top (below the sticky header) — scroll up.
+      const intensity = Math.min(1, (top + EDGE - pointerY) / EDGE);
       dy = -Math.ceil(intensity * MAX_SPEED);
     } else if (pointerY > vh - EDGE) {
       // Near bottom — scroll down.
-      const intensity = (pointerY - (vh - EDGE)) / EDGE; // 0..1
+      const intensity = Math.min(1, (pointerY - (vh - EDGE)) / EDGE);
       dy = Math.ceil(intensity * MAX_SPEED);
     }
 
@@ -1891,13 +1916,17 @@ setInterval(() => { updateExportStatus(); updateReminder(); }, 60000);
     if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
   }
 
-  // Track cursor position throughout the drag (dragover fires continuously).
-  document.addEventListener('dragover', (e) => {
+  // Track cursor position throughout the drag. We listen on BOTH the
+  // document 'dragover' AND 'drag' (which fires on the dragged element and
+  // keeps reporting clientY even when the cursor is over the sticky header,
+  // where dragover can be unreliable). Whichever fires keeps pointerY live.
+  const updateY = (e) => {
     if (!dragging) return;
-    pointerY = e.clientY;
-  });
+    if (e.clientY > 0) pointerY = e.clientY; // ignore the 0,0 end-of-drag event
+  };
+  document.addEventListener('dragover', updateY);
+  document.addEventListener('drag', updateY, true); // capture phase, on dragged el
 
-  // Any item drag begins -> start the scroll loop; ends -> stop.
   document.addEventListener('dragstart', start);
   document.addEventListener('dragend', stop);
   document.addEventListener('drop', stop);
