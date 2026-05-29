@@ -107,7 +107,7 @@
     padding: 24px 32px; max-width: 1500px; margin: 0 auto;
   }
   .sidebar {
-    position: sticky; top: 90px; align-self: start;
+    align-self: start;
     background: var(--bg-card); border: 1px solid var(--line);
     border-radius: 8px; padding: 20px;
   }
@@ -623,6 +623,7 @@
     </div>
   </div>
   <div class="actions" id="plan-actions">
+    <button class="btn" onclick="openImport()">Import .md</button>
     <button class="btn" onclick="copyMarkdown()">Copy</button>
     <button class="btn btn-primary" onclick="downloadMarkdown()">Export .md</button>
   </div>
