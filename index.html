@@ -248,6 +248,12 @@
     border: 1px solid var(--line);
     overflow-x: auto;
   }
+  .tree-empty {
+    color: var(--ink-dim);
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+  }
   .tree-row {
     display: flex; align-items: baseline;
     line-height: 1.7;
@@ -853,9 +859,23 @@ const SNOOZE_HOURS = 24;
 // Default collapse state — Shipped collapsed, everything else expanded
 const DEFAULT_COLLAPSED = { shipped: true, wip: false, queued: false, future: false, critical: false };
 
+// Default `find` command shown in every new project's Project Structure card.
+// Edit here (or per-project via the Edit button) to change the captured paths.
+const DEFAULT_FIND_COMMAND =
+  "find . -type f -not -path './node_modules/*' -not -path './.git/*' -not -path './.expo/*' | sort";
+
+// A fresh project starts with the command and a blank tree, ready to paste into.
+const DEFAULT_STRUCTURE = [
+  'Re-run this command from the project root and paste the output below to refresh:',
+  '',
+  '```',
+  DEFAULT_FIND_COMMAND,
+  '```',
+].join('\n');
+
 const DEFAULT_STATE = {
   vision: '',
-  structure: '',
+  structure: DEFAULT_STRUCTURE,
   sections: {
     shipped: [],
     wip: [],
@@ -1058,11 +1078,7 @@ function renderStructure() {
   const commandBox = document.getElementById('structure-command');
   const treeBox = document.getElementById('structure-tree');
   if (!card || !commandBox || !treeBox || !commandWrap) return;
-  const text = (state.structure || '').trim();
-  if (!text) {
-    card.style.display = 'none';
-    return;
-  }
+  const text = (state.structure || '').trim() || DEFAULT_STRUCTURE;
   card.style.display = 'block';
 
   // Pull all fenced code blocks out of the section
@@ -1103,6 +1119,15 @@ function renderStructure() {
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l.length > 0 && /^\.\//.test(l));
+
+  // Blank structure (new project, or command-only): show a hint instead of an
+  // empty tree so the card still appears with its command.
+  if (lines.length === 0) {
+    treeBox.innerHTML =
+      '<div class="tree-empty">No files captured yet — run the command above in Terminal, ' +
+      'then click <strong>Edit</strong> and paste the output here.</div>';
+    return;
+  }
 
   const tree = { name: '.', folders: {}, files: [] };
   for (const path of lines) {
