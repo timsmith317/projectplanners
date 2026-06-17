@@ -861,8 +861,20 @@ const DEFAULT_COLLAPSED = { shipped: true, wip: false, queued: false, future: fa
 
 // Default `find` command shown in every new project's Project Structure card.
 // Edit here (or per-project via the Edit button) to change the captured paths.
-const DEFAULT_FIND_COMMAND =
-  "find . -type f -not -path './node_modules/*' -not -path './.git/*' -not -path './.expo/*' | sort";
+const DEFAULT_FIND_COMMAND = [
+  'find . -type f \\',
+  '  -not -path "./node_modules/*" \\',
+  '  -not -path "./.expo/*" \\',
+  '  -not -path "./ios/*" \\',
+  '  -not -path "./android/*" \\',
+  '  -not -path "./.git/*" \\',
+  '  -not -path "./dist/*" \\',
+  '  -not -path "./build/*" \\',
+  '  -not -name ".env*" \\',
+  '  -not -name "*.log" \\',
+  '  -not -name ".DS_Store" \\',
+  '  | sort',
+].join('\n');
 
 // A fresh project starts with the command and a blank tree, ready to paste into.
 const DEFAULT_STRUCTURE = [
