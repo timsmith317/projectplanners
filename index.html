@@ -1248,40 +1248,45 @@ function saveStructureEdit() {
     return;
   }
 
-  // Detect: does the paste contain markdown code fences?
-  const hasFences = /```/.test(raw);
+  // Normalize lines (strip any stray CRs from copy/paste).
+  const lines = raw.split('\n').map((l) => l.replace(/\r$/, ''));
 
-  let commandText = '';
-  let fileListText = '';
-
-  if (hasFences) {
-    // Pasted content contains code fences — parse them out
-    const fenceRegex = /```[a-zA-Z]*\n([\s\S]*?)```/g;
-    let m;
-    while ((m = fenceRegex.exec(raw)) !== null) {
-      const block = m[1].trim();
-      const firstLine = block.split('\n')[0].trim();
-      if (/^find\b/.test(firstLine)) {
-        commandText = block;
-      } else if (/^\.\//.test(firstLine) || /^\.\\/.test(firstLine)) {
-        fileListText = block;
-      }
-    }
-  } else {
-    // Raw output — interpret line by line. Lines starting with `./` are
-    // file paths; anything else is ignored.
-    const pathLines = raw.split('\n').filter((l) => /^\.\//.test(l.trim()));
-    fileListText = pathLines.join('\n');
-    // Preserve the existing command from current state, if present
-    const existingCommandMatch = /```[a-zA-Z]*\n(find[\s\S]*?)```/.exec(state.structure || '');
-    if (existingCommandMatch) {
-      commandText = existingCommandMatch[1].trim();
-    }
-  }
+  // File list: ANY line beginning with `./` or `.\` (after optional
+  // whitespace), wherever it appears — fenced, unfenced, or mixed in with a
+  // pasted command block. Command lines (`find`, `-not …`, `| sort`) never
+  // start with `.`, so they're not mistaken for paths.
+  const fileListText = lines
+    .filter((l) => /^\s*\.[\\/]/.test(l))
+    .map((l) => l.trim())
+    .join('\n');
 
   if (!fileListText) {
     showToast('No file paths found. Paste lines that start with ./');
     return;
+  }
+
+  // Command: prefer a `find … | sort` block found in the paste itself,
+  // whether it's fenced or bare. Fall back to the project's existing command,
+  // then to the built-in default — so a project always carries a command.
+  let commandText = '';
+  const fencedCmd = /```[a-zA-Z]*\n\s*(find\b[\s\S]*?)```/.exec(raw);
+  if (fencedCmd) {
+    commandText = fencedCmd[1].trim();
+  } else {
+    const startIdx = lines.findIndex((l) => /^\s*find\b/.test(l));
+    if (startIdx !== -1) {
+      const collected = [];
+      for (let i = startIdx; i < lines.length; i++) {
+        collected.push(lines[i]);
+        if (/\|\s*sort\s*$/.test(lines[i])) break; // end of a `… | sort` command
+        if (/^\s*\.[\\/]/.test(lines[i + 1] || '')) break; // next line is the file list
+      }
+      commandText = collected.join('\n').trim();
+    }
+  }
+  if (!commandText) {
+    const existing = /```[a-zA-Z]*\n\s*(find[\s\S]*?)```/.exec(state.structure || '');
+    commandText = existing ? existing[1].trim() : DEFAULT_FIND_COMMAND;
   }
 
   // Build the canonical structure text: explanatory line, command block,
@@ -1289,12 +1294,10 @@ function saveStructureEdit() {
   const parts = [];
   parts.push('Re-run this command from the project root and paste the output below to refresh:');
   parts.push('');
-  if (commandText) {
-    parts.push('```');
-    parts.push(commandText);
-    parts.push('```');
-    parts.push('');
-  }
+  parts.push('```');
+  parts.push(commandText);
+  parts.push('```');
+  parts.push('');
   parts.push('```');
   parts.push(fileListText);
   parts.push('```');
