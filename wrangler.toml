@@ -1,0 +1,14 @@
+# Project Planner — Cloudflare Pages project
+# Site (static) is served from ./site, the sync API from ./functions/api/sync.js
+
+name = "projectplanners"
+compatibility_date = "2026-06-01"
+pages_build_output_dir = "site"
+
+# KV namespace holding the synced store.
+# Create it once with:
+#   npx wrangler kv namespace create PLANNER_KV
+# then paste the returned id below in place of PASTE_KV_ID_HERE.
+[[kv_namespaces]]
+binding = "PLANNER_KV"
+id = "PASTE_KV_ID_HERE"

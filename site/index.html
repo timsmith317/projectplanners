@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project Planner</title>
+<meta name="theme-color" content="#fafaf7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Planner">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -59,6 +66,34 @@
   .btn-primary:hover { background: #2a2a28; }
   .btn-danger { color: #c8504c; border-color: #e5c4c2; }
   .btn-danger:hover { background: #f5dedc; }
+
+  /* ===== Sync status button (always visible in header) ===== */
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .sync-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 14px; border-radius: 999px; border: 1px solid var(--line-strong);
+    background: var(--bg-card); color: var(--ink-soft); cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; transition: all 150ms;
+  }
+  .sync-btn:hover { background: var(--bg-soft); }
+  .sync-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--ink-dim); transition: background 200ms;
+  }
+  .sync-dot.ok { background: #4a8558; }
+  .sync-dot.pending { background: #d4a545; }
+  .sync-dot.error { background: #c8504c; }
+  .sync-dot.off { background: var(--ink-dim); }
+  .sync-input {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line-strong);
+    border-radius: 8px; font-family: 'SF Mono', Menlo, monospace; font-size: 13px;
+    color: var(--ink); background: var(--bg); margin-bottom: 14px;
+  }
+  .sync-input:focus { outline: none; border-color: var(--accent); }
+  .sync-status-line {
+    font-size: 12px; color: var(--ink-dim); margin-bottom: 4px;
+  }
 
   .reminder-banner {
     background: var(--amber-bg);
@@ -628,10 +663,15 @@
       <p id="brand-subtitle" style="display:none;"></p>
     </div>
   </div>
-  <div class="actions" id="plan-actions">
-    <button class="btn" onclick="openImport()">Import .md</button>
-    <button class="btn" onclick="copyMarkdown()">Copy</button>
-    <button class="btn btn-primary" onclick="downloadMarkdown()">Export .md</button>
+  <div class="header-right">
+    <div class="actions" id="plan-actions">
+      <button class="btn" onclick="openImport()">Import .md</button>
+      <button class="btn" onclick="copyMarkdown()">Copy</button>
+      <button class="btn btn-primary" onclick="downloadMarkdown()">Export .md</button>
+    </div>
+    <button class="sync-btn" id="sync-btn" onclick="openSyncModal()" title="Sync settings">
+      <span class="sync-dot off" id="sync-dot"></span><span id="sync-btn-label">Sync</span>
+    </button>
   </div>
 </header>
 
@@ -767,6 +807,20 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="sync-modal">
+  <div class="modal">
+    <h2>Sync</h2>
+    <p>Paste your sync token to keep this device in sync with your other devices. Changes push automatically a couple of seconds after you edit, and pull whenever you return to the app.</p>
+    <input type="password" class="sync-input" id="sync-token-input" placeholder="Sync token" autocomplete="off">
+    <div class="sync-status-line" id="sync-status-line">Sync is off — no token set.</div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="sync-disable-btn" onclick="disableSync()" style="display:none;">Turn off</button>
+      <button class="btn" onclick="closeSyncModal()">Close</button>
+      <button class="btn btn-primary" onclick="saveSyncToken()">Save &amp; sync</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SECTIONS = [
   { key: 'shipped',  title: 'Shipped',       color: 'color-shipped',  emoji: '✅' },
@@ -784,6 +838,36 @@ const SECTIONS = [
 // ============================================================
 const PROJECTS_KEY = 'planner-projects-v1';
 const OPEN_TABS_KEY = 'planner-open-tabs-v1';
+const TOMBSTONES_KEY = 'planner-tombstones-v1';   // { [id]: deletedAtISO }
+const PLAN_UPDATED_KEY = 'planner-plan-updated-v1'; // { [id]: lastEditISO }
+const EPOCH = '1970-01-01T00:00:00.000Z';
+
+// Deleted-project tombstones + per-project plan edit timestamps, both used
+// by the sync layer for per-project last-write-wins merging.
+let tombstones = {};
+let planUpdated = {};
+
+function loadJsonKey(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return {};
+}
+function saveJsonKey(key, obj) {
+  try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {}
+}
+
+// Stamp a project registry entry as just-changed (name/color/order/created).
+function touchProject(p) {
+  p.updatedAt = new Date().toISOString();
+}
+
+// Stamp a project's plan as just-edited.
+function touchPlan(id) {
+  planUpdated[id] = new Date().toISOString();
+  saveJsonKey(PLAN_UPDATED_KEY, planUpdated);
+}
 const TAB_COLORS = ['#4a5d4f', '#c8504c', '#6699bb', '#d4a574', '#9c7fb4', '#3f7d6e', '#b5713f', '#7a6cb0'];
 
 let projects = [];        // [{ id, name, color, order }]
@@ -815,6 +899,7 @@ function loadProjects() {
 function saveProjects() {
   try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects)); }
   catch (e) { console.warn('Failed to save projects:', e); }
+  queueSync();
 }
 
 // Init: load existing projects from storage, or start with none.
@@ -824,6 +909,8 @@ function migrateOrInit() {
   const existing = loadProjects();
   projects = (existing && existing.length) ? existing : [];
   openTabs = loadOpenTabs().filter((id) => projects.some((p) => p.id === id));
+  tombstones = loadJsonKey(TOMBSTONES_KEY);
+  planUpdated = loadJsonKey(PLAN_UPDATED_KEY);
 }
 
 function getProject(id) { return projects.find((p) => p.id === id); }
@@ -837,8 +924,10 @@ function slugify(name) {
 }
 
 function uniqueProjectId(base) {
+  // Also skip tombstoned (deleted) ids: reusing one would let the old
+  // deletion record mask or delete the new project during sync merges.
   let id = base, n = 2;
-  while (getProject(id)) { id = base + '-' + n; n++; }
+  while (getProject(id) || tombstones[id]) { id = base + '-' + n; n++; }
   return id;
 }
 
@@ -953,6 +1042,8 @@ function saveCollapsed() {
 function markEdited() {
   meta.lastEdit = new Date().toISOString();
   saveMeta();
+  if (activeProjectId) touchPlan(activeProjectId);
+  queueSync();
   updateExportStatus();
   updateReminder();
 }
@@ -1678,6 +1769,7 @@ function doReset() {
   collapsed = JSON.parse(JSON.stringify(DEFAULT_COLLAPSED));
   nextId = computeNextId();
   saveCollapsed();
+  markEdited();
   render();
   closeReset();
   showToast('Reset to template (Pre-Production only)');
@@ -1723,12 +1815,15 @@ function importFile(file) {
       const id = uniqueProjectId(slugify(name));
       const color = TAB_COLORS[projects.length % TAB_COLORS.length];
       proj = { id, name, color, order: projects.length };
+      touchProject(proj);
       projects.push(proj);
       saveProjects();
     }
 
     // Write the imported plan into that project's storage
     localStorage.setItem(projKey(proj.id, 'plan'), JSON.stringify(importedState));
+    touchPlan(proj.id);
+    queueSync();
 
     closeImport();
     navTo(proj.id); // opens (or refreshes) the project's tab and selects it
@@ -2167,7 +2262,7 @@ function buildProjectCard(p) {
   name.onclick = (e) => e.stopPropagation();
   name.onblur = () => {
     const v = name.textContent.trim();
-    if (v && v !== p.name) { p.name = v; saveProjects(); }
+    if (v && v !== p.name) { p.name = v; touchProject(p); saveProjects(); }
     else name.textContent = p.name;
   };
   name.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); name.blur(); } };
@@ -2236,7 +2331,7 @@ function reorderProject(draggedId, targetId, before) {
   const targetIdx = without.findIndex((p) => p.id === targetId);
   const insertAt = before ? targetIdx : targetIdx + 1;
   without.splice(insertAt, 0, dragged);
-  without.forEach((p, i) => { p.order = i; });
+  without.forEach((p, i) => { p.order = i; touchProject(p); });
   projects = without;
   saveProjects();
   renderProjectsPage();
@@ -2255,6 +2350,7 @@ function openColorPicker(id) {
     opt.style.background = c;
     opt.onclick = () => {
       p.color = c;
+      touchProject(p);
       saveProjects();
       modal.classList.remove('show');
       renderProjectsPage();
@@ -2274,7 +2370,10 @@ function createProject() {
   const color = TAB_COLORS[projects.length % TAB_COLORS.length];
   const order = projects.length;
   localStorage.setItem(projKey(id, 'plan'), JSON.stringify(newProjectState()));
-  projects.push({ id, name: trimmed, color, order });
+  touchPlan(id);
+  const newProj = { id, name: trimmed, color, order };
+  touchProject(newProj);
+  projects.push(newProj);
   saveProjects();
   navTo(id);
 }
@@ -2282,21 +2381,260 @@ function createProject() {
 function deleteProject(id) {
   const p = getProject(id);
   if (!p) return;
-  if (!confirm('Delete "' + p.name + '"? This removes its plan from this browser. Export a .md backup first if you want to keep it.')) return;
+  if (!confirm('Delete "' + p.name + '"? This removes its plan from this browser and all synced devices. Export a .md backup first if you want to keep it.')) return;
   localStorage.removeItem(projKey(id, 'plan'));
   localStorage.removeItem(projKey(id, 'meta'));
   localStorage.removeItem(projKey(id, 'collapse'));
   projects = projects.filter((x) => x.id !== id);
-  projects.forEach((x, i) => { x.order = i; });
+  projects.forEach((x, i) => { x.order = i; touchProject(x); });
+  tombstones[id] = new Date().toISOString();
+  saveJsonKey(TOMBSTONES_KEY, tombstones);
+  delete planUpdated[id];
+  saveJsonKey(PLAN_UPDATED_KEY, planUpdated);
   saveProjects();
   if (activeProjectId === id) navTo('projects');
   else renderProjectsPage();
+}
+
+// ============================================================
+//  SYNC ENGINE
+//  Pushes a full snapshot to /api/sync (debounced ~2s after any
+//  edit). The server merges per-project last-write-wins and
+//  returns the merged store, so every push is also a pull.
+//  Pulls also fire on load, on tab focus/visibility, and on
+//  regaining connectivity — the phone refreshes silently the
+//  moment you open it.
+// ============================================================
+const SYNC_URL = '/api/sync';
+const SYNC_TOKEN_KEY = 'planner-sync-token-v1';
+const SYNC_DEBOUNCE_MS = 2000;
+
+let syncToken = localStorage.getItem(SYNC_TOKEN_KEY) || '';
+let syncTimer = null;
+let syncInFlight = false;
+let syncQueuedAgain = false;   // an edit landed while a sync was in flight
+let applyingRemote = false;    // suppress queueSync while applying merged data
+let lastSyncAt = null;
+
+function setSyncDot(cls, label) {
+  const dot = document.getElementById('sync-dot');
+  const btnLabel = document.getElementById('sync-btn-label');
+  if (dot) dot.className = 'sync-dot ' + cls;
+  if (btnLabel && label) btnLabel.textContent = label;
+}
+
+function queueSync() {
+  if (applyingRemote || !syncToken) return;
+  setSyncDot('pending', 'Sync');
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, SYNC_DEBOUNCE_MS);
+}
+
+// Build the full local snapshot in the server's store shape.
+function buildSnapshot() {
+  const snapProjects = {};
+  for (const p of projects) {
+    snapProjects[p.id] = {
+      id: p.id, name: p.name, color: p.color,
+      order: p.order ?? 0,
+      updatedAt: p.updatedAt || EPOCH,
+      deleted: false,
+    };
+  }
+  for (const [id, deletedAt] of Object.entries(tombstones)) {
+    if (projects.some((p) => p.id === id)) continue; // live project wins locally
+    snapProjects[id] = { id, updatedAt: deletedAt, deleted: true };
+  }
+  const snapPlans = {};
+  for (const p of projects) {
+    try {
+      const raw = localStorage.getItem(projKey(p.id, 'plan'));
+      if (raw) {
+        snapPlans[p.id] = {
+          plan: JSON.parse(raw),
+          updatedAt: planUpdated[p.id] || p.updatedAt || EPOCH,
+        };
+      }
+    } catch (e) {}
+  }
+  return { projects: snapProjects, plans: snapPlans };
+}
+
+// Apply the merged store the server returned. Only newer-than-local
+// entries change anything; collapse state and open tabs stay device-local.
+function applyMerged(store) {
+  if (!store || typeof store !== 'object') return;
+  applyingRemote = true;
+  try {
+    let registryChanged = false;
+    let activePlanChanged = false;
+
+    const remoteProjects = store.projects || {};
+    const remotePlans = store.plans || {};
+
+    for (const id of Object.keys(remoteProjects)) {
+      const r = remoteProjects[id];
+      if (!r) continue;
+
+      if (r.deleted) {
+        // Adopt the tombstone; remove the project locally only if the
+        // deletion is newer than our local entry (a re-created project
+        // with a newer updatedAt survives and out-merges the tombstone).
+        const localEntry = getProject(id);
+        if (localEntry && r.updatedAt <= (localEntry.updatedAt || EPOCH)) continue;
+        if (!tombstones[id] || r.updatedAt > tombstones[id]) tombstones[id] = r.updatedAt;
+        const idx = projects.findIndex((p) => p.id === id);
+        if (idx !== -1) {
+          projects.splice(idx, 1);
+          localStorage.removeItem(projKey(id, 'plan'));
+          localStorage.removeItem(projKey(id, 'meta'));
+          localStorage.removeItem(projKey(id, 'collapse'));
+          delete planUpdated[id];
+          registryChanged = true;
+          const tabIdx = openTabs.indexOf(id);
+          if (tabIdx !== -1) { openTabs.splice(tabIdx, 1); saveOpenTabs(); }
+          if (activeProjectId === id) navTo('projects');
+        }
+        continue;
+      }
+
+      const local = getProject(id);
+      if (!local) {
+        projects.push({ id, name: r.name, color: r.color, order: r.order ?? 0, updatedAt: r.updatedAt });
+        registryChanged = true;
+      } else if (r.updatedAt > (local.updatedAt || EPOCH)) {
+        local.name = r.name; local.color = r.color;
+        local.order = r.order ?? 0; local.updatedAt = r.updatedAt;
+        registryChanged = true;
+      }
+    }
+
+    for (const id of Object.keys(remotePlans)) {
+      const r = remotePlans[id];
+      if (!r || !r.plan || !getProject(id)) continue;
+      const localTs = planUpdated[id] || EPOCH;
+      if (r.updatedAt > localTs) {
+        localStorage.setItem(projKey(id, 'plan'), JSON.stringify(r.plan));
+        planUpdated[id] = r.updatedAt;
+        if (id === activeProjectId) activePlanChanged = true;
+      }
+    }
+
+    saveJsonKey(TOMBSTONES_KEY, tombstones);
+    saveJsonKey(PLAN_UPDATED_KEY, planUpdated);
+
+    if (registryChanged) {
+      try { localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects)); } catch (e) {}
+      renderTabs();
+      if (activeProjectId === null) renderProjectsPage();
+    }
+    if (activePlanChanged) {
+      state = loadState();
+      nextId = computeNextId();
+      render();
+    }
+  } finally {
+    applyingRemote = false;
+  }
+}
+
+async function syncNow() {
+  if (!syncToken) { setSyncDot('off', 'Sync'); return; }
+  if (syncInFlight) { syncQueuedAgain = true; return; }
+  syncInFlight = true;
+  clearTimeout(syncTimer);
+  setSyncDot('pending', 'Sync');
+  try {
+    const res = await fetch(SYNC_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + syncToken,
+      },
+      body: JSON.stringify(buildSnapshot()),
+    });
+    if (res.status === 401) {
+      setSyncDot('error', 'Token?');
+      updateSyncStatusLine('Token was rejected — check it and save again.');
+      return;
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const merged = await res.json();
+    applyMerged(merged);
+    lastSyncAt = new Date();
+    setSyncDot('ok', 'Sync');
+    updateSyncStatusLine();
+  } catch (e) {
+    // Offline or server hiccup — data is safe in localStorage; the next
+    // edit, focus, or reconnect retries automatically.
+    setSyncDot('error', 'Offline');
+    updateSyncStatusLine('Could not reach the sync server. Will retry on next edit or focus.');
+  } finally {
+    syncInFlight = false;
+    if (syncQueuedAgain) { syncQueuedAgain = false; queueSync(); }
+  }
+}
+
+function updateSyncStatusLine(msg) {
+  const line = document.getElementById('sync-status-line');
+  if (!line) return;
+  if (msg) { line.textContent = msg; return; }
+  if (!syncToken) { line.textContent = 'Sync is off — no token set.'; return; }
+  line.textContent = lastSyncAt
+    ? 'Last synced ' + lastSyncAt.toLocaleTimeString()
+    : 'Token saved — not synced yet this session.';
+}
+
+// ---- Sync modal ----
+function openSyncModal() {
+  const input = document.getElementById('sync-token-input');
+  input.value = syncToken;
+  document.getElementById('sync-disable-btn').style.display = syncToken ? 'inline-block' : 'none';
+  updateSyncStatusLine();
+  document.getElementById('sync-modal').classList.add('show');
+}
+function closeSyncModal() {
+  document.getElementById('sync-modal').classList.remove('show');
+}
+function saveSyncToken() {
+  const v = document.getElementById('sync-token-input').value.trim();
+  if (!v) { showToast('Paste a sync token first'); return; }
+  syncToken = v;
+  try { localStorage.setItem(SYNC_TOKEN_KEY, v); } catch (e) {}
+  closeSyncModal();
+  showToast('Sync enabled');
+  syncNow();
+}
+function disableSync() {
+  syncToken = '';
+  try { localStorage.removeItem(SYNC_TOKEN_KEY); } catch (e) {}
+  setSyncDot('off', 'Sync');
+  closeSyncModal();
+  showToast('Sync turned off on this device');
+}
+
+// ---- Pull triggers: load, focus/visibility, reconnect ----
+function initSync() {
+  if (syncToken) syncNow();
+  else setSyncDot('off', 'Sync');
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && syncToken) syncNow();
+  });
+  window.addEventListener('online', () => { if (syncToken) syncNow(); });
+}
+
+// ---- PWA service worker ----
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
 }
 
 // ---- Boot ----
 migrateOrInit();
 window.addEventListener('hashchange', handleRoute);
 handleRoute();
+initSync();
 
 </script>
 
