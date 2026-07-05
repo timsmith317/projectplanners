@@ -8,7 +8,7 @@ pages_build_output_dir = "site"
 # KV namespace holding the synced store.
 # Create it once with:
 #   npx wrangler kv namespace create PLANNER_KV
-# then paste the returned id below in place of PASTE_KV_ID_HERE.
+# then paste the returned id below in place of b5ccb32513bb4928a6b386dfcc325fb9.
 [[kv_namespaces]]
 binding = "PLANNER_KV"
-id = "PASTE_KV_ID_HERE"
+id = "b5ccb32513bb4928a6b386dfcc325fb9"
