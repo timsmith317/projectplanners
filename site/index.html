@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- File: site/index.html → ~/Projects/projectplanners/site/index.html -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -93,6 +94,83 @@
   .sync-input:focus { outline: none; border-color: var(--accent); }
   .sync-status-line {
     font-size: 12px; color: var(--ink-dim); margin-bottom: 4px;
+  }
+
+  /* ===== Mobile capture view (phones) ===== */
+  #mobile-view { display: none; }
+
+  @media (max-width: 640px) {
+    /* Hide the desktop experience entirely — !important beats the inline
+       display styles that desktop routing sets on these containers. */
+    .tabs-bar, #plan-view, #projects-page, #plan-actions { display: none !important; }
+
+    header { padding: 12px 16px; }
+    .brand h1 { font-size: 20px; }
+
+    #mobile-view {
+      display: flex;
+      flex-direction: column;
+      /* dvh tracks the iOS keyboard/URL-bar; header is above us in flow */
+      height: calc(100dvh - 64px);
+    }
+    .m-pills {
+      display: flex; gap: 8px; overflow-x: auto;
+      padding: 12px 16px 4px 16px;
+      -webkit-overflow-scrolling: touch;
+      flex: none;
+    }
+    .m-pills::-webkit-scrollbar { display: none; }
+    .m-pill {
+      flex: none; display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 15px; border-radius: 999px;
+      border: 1px solid var(--line-strong); background: var(--bg-card);
+      font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--ink); cursor: pointer; white-space: nowrap;
+    }
+    .m-pill .m-pill-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .m-pill.active { color: #fff; border-color: transparent; }
+    .m-pill.active .m-pill-dot { background: rgba(255,255,255,0.55) !important; }
+
+    .m-notes {
+      flex: 1; overflow-y: auto; padding: 10px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .m-note {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: var(--bg-card); border: 1px solid var(--line);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .m-note-text { flex: 1; font-size: 15px; line-height: 1.45; color: var(--ink); word-break: break-word; }
+    .m-note-text .m-note-sub { color: var(--ink-soft); }
+    .m-note-del {
+      flex: none; border: none; background: none; color: var(--ink-dim);
+      font-size: 20px; line-height: 1; padding: 2px 4px; cursor: pointer;
+    }
+    .m-empty {
+      text-align: center; color: var(--ink-dim); font-size: 14px;
+      padding: 40px 20px; line-height: 1.6;
+    }
+
+    .m-addbar {
+      flex: none; display: flex; gap: 8px;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom)) 16px;
+      background: var(--bg); border-top: 1px solid var(--line);
+    }
+    .m-addbar input {
+      flex: 1; padding: 12px 14px;
+      border: 1px solid var(--line-strong); border-radius: 10px;
+      background: var(--bg-card); color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px; /* ≥16px prevents iOS auto-zoom on focus */
+    }
+    .m-addbar input:focus { outline: none; border-color: var(--accent); }
+    .m-add-btn {
+      flex: none; padding: 12px 18px; border: none; border-radius: 10px;
+      background: var(--accent); color: #fff;
+      font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer;
+    }
+    .m-add-btn:active { opacity: 0.85; }
   }
 
   .reminder-banner {
@@ -382,6 +460,7 @@
   .color-queued { background: #6699bb; }
   .color-future { background: #9c7fb4; }
   .color-critical { background: #c8504c; }
+  .color-notes { background: #8a8578; }
 
   /* Collapse content */
   .section-content {
@@ -677,6 +756,17 @@
 
 <nav class="tabs-bar" id="tabs-bar"></nav>
 
+<!-- Mobile capture view: project pills + Notes inbox + capture bar.
+     Hidden on desktop; replaces the board entirely at phone widths. -->
+<div id="mobile-view">
+  <div class="m-pills" id="m-pills"></div>
+  <div class="m-notes" id="m-notes"></div>
+  <div class="m-addbar">
+    <input id="m-input" type="text" placeholder="Capture a thought…" autocomplete="off" enterkeyhint="done">
+    <button class="m-add-btn" onclick="mAddNote()">Add</button>
+  </div>
+</div>
+
 <div class="reminder-banner hide" id="reminder-banner">
   <div class="reminder-text">
     <span class="reminder-icon">💾</span>
@@ -706,6 +796,7 @@
 <div class="layout">
   <aside class="sidebar">
     <h2>Progress</h2>
+    <div class="stat-row"><span class="stat-label">Notes</span><span class="stat-value" id="stat-notes">0</span></div>
     <div class="stat-row"><span class="stat-label">Shipped</span><span class="stat-value" id="stat-shipped">0</span></div>
     <div class="stat-row"><span class="stat-label">In Progress</span><span class="stat-value" id="stat-wip">0</span></div>
     <div class="stat-row"><span class="stat-label">Queued</span><span class="stat-value" id="stat-queued">0</span></div>
@@ -823,6 +914,7 @@
 
 <script>
 const SECTIONS = [
+  { key: 'notes',    title: 'Notes',         color: 'color-notes',    emoji: '📝' },
   { key: 'shipped',  title: 'Shipped',       color: 'color-shipped',  emoji: '✅' },
   { key: 'wip',      title: 'In Progress',   color: 'color-wip',      emoji: '🟡' },
   { key: 'queued',   title: 'Queued — Next', color: 'color-queued',   emoji: '🔵' },
@@ -946,7 +1038,7 @@ const REMINDER_DAYS = 7;
 const SNOOZE_HOURS = 24;
 
 // Default collapse state — Shipped collapsed, everything else expanded
-const DEFAULT_COLLAPSED = { shipped: true, wip: false, queued: false, future: false, critical: false };
+const DEFAULT_COLLAPSED = { notes: false, shipped: true, wip: false, queued: false, future: false, critical: false };
 
 // Default `find` command shown in every new project's Project Structure card.
 // Edit here (or per-project via the Edit button) to change the captured paths.
@@ -978,6 +1070,7 @@ const DEFAULT_STATE = {
   vision: '',
   structure: DEFAULT_STRUCTURE,
   sections: {
+    notes: [],
     shipped: [],
     wip: [],
     queued: [],
@@ -1000,10 +1093,21 @@ function projectFileName() {
   return (p ? slugify(p.name) : 'project') + '-plan.md';
 }
 
+// Ensure a loaded plan has an array for every known section. Covers plans
+// saved before the Notes lane existed, and plans arriving via sync from a
+// device running an older version.
+function normalizeState(st) {
+  if (!st.sections) st.sections = {};
+  for (const sec of SECTIONS) {
+    if (!Array.isArray(st.sections[sec.key])) st.sections[sec.key] = [];
+  }
+  return st;
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(projKey(activeProjectId, 'plan'));
-    if (raw) return JSON.parse(raw);
+    if (raw) return normalizeState(JSON.parse(raw));
   } catch (e) { console.warn('Failed to load state:', e); }
   return JSON.parse(JSON.stringify(DEFAULT_STATE));
 }
@@ -1138,13 +1242,13 @@ function toggleSection(key) {
 }
 
 function expandAll() {
-  for (const key of Object.keys(collapsed)) collapsed[key] = false;
+  for (const sec of SECTIONS) collapsed[sec.key] = false;
   saveCollapsed();
   renderSections();
 }
 
 function collapseAll() {
-  for (const key of Object.keys(collapsed)) collapsed[key] = true;
+  for (const sec of SECTIONS) collapsed[sec.key] = true;
   saveCollapsed();
   renderSections();
 }
@@ -1636,7 +1740,9 @@ function renderStats() {
   for (const sec of SECTIONS) {
     const count = (state.sections[sec.key] || []).length;
     document.getElementById('stat-' + sec.key).textContent = count;
-    total += count;
+    // Notes is an untriaged inbox — visible as a count, excluded from
+    // the shipped percentage so captured thoughts don't skew progress.
+    if (sec.key !== 'notes') total += count;
     if (sec.key === 'shipped') shipped = count;
   }
   const pct = total === 0 ? 0 : Math.round((shipped / total) * 100);
@@ -1644,17 +1750,20 @@ function renderStats() {
   document.getElementById('progress-caption').textContent = pct + '% shipped (' + shipped + ' / ' + total + ')';
 }
 
-function addItemFromInput(input, sectionKey) {
-  const raw = input.value.trim();
-  if (!raw) return;
-  // Collapse any pasted newlines / runs of whitespace so an entry is always
-  // a single line. This prevents multi-line pastes from corrupting export.
+// Shared by the desktop add bars and the mobile capture input: collapse
+// whitespace/newlines and split "Title — notes" the same way the importer does.
+function itemFromText(raw) {
   const cleaned = raw.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
-  // Split "Title — notes" (em-dash or hyphen) the same way the importer does,
-  // so a pasted summary lands with a proper title and notes.
   let title = cleaned, notes = '';
   const dashMatch = cleaned.match(/^(.+?)\s+[—-]\s+(.+)$/);
   if (dashMatch) { title = dashMatch[1].trim(); notes = dashMatch[2].trim(); }
+  return { title, notes };
+}
+
+function addItemFromInput(input, sectionKey) {
+  const raw = input.value.trim();
+  if (!raw) return;
+  const { title, notes } = itemFromText(raw);
   state.sections[sectionKey].push({ id: nextId++, title, notes });
   input.value = '';
   markEdited();
@@ -1839,7 +1948,7 @@ function parseMarkdown(text) {
   const newState = {
     vision: '',
     structure: '',
-    sections: { shipped: [], wip: [], queued: [], future: [], critical: [] },
+    sections: { notes: [], shipped: [], wip: [], queued: [], future: [], critical: [] },
   };
   if (!text || typeof text !== 'string') {
     return { success: false, message: 'File is empty or unreadable' };
@@ -1862,6 +1971,7 @@ function parseMarkdown(text) {
   let structureLines = [];
   let id = 1;
   const sectionMatchers = {
+    notes:    /^(notes|inbox)$/i,
     shipped:  /shipped/i,
     wip:      /(in[\s-]?progress|wip)/i,
     queued:   /queued/i,
@@ -2104,6 +2214,7 @@ function showProjectsPage() {
 
 // ---- Hash routing: #projects = Projects tab, #<id> = that project's tab ----
 function handleRoute() {
+  if (isMobile()) { renderMobile(); return; }
   const hash = (location.hash || '').replace(/^#/, '');
   if (!hash || hash === 'projects') { showProjectsPage(); return; }
   if (getProject(hash)) { openProjectPlan(hash); }
@@ -2397,6 +2508,128 @@ function deleteProject(id) {
 }
 
 // ============================================================
+//  MOBILE CAPTURE VIEW (≤640px)
+//  A dedicated capture surface: pick a project, type thoughts one
+//  per line into its Notes inbox. No board, no stats — triage
+//  happens on the desktop by dragging out of the Notes lane.
+//  Uses the same hash routing and plan state as the desktop view.
+// ============================================================
+const mobileMQ = window.matchMedia('(max-width: 640px)');
+function isMobile() { return mobileMQ.matches; }
+
+// Load a project's plan for mobile without touching openTabs
+// (tabs are a desktop, device-local concept).
+function mobileSelect(id) {
+  if (!getProject(id)) return;
+  activeProjectId = id;
+  state = loadState();
+  meta = loadMeta();
+  collapsed = loadCollapsed();
+  nextId = computeNextId();
+}
+
+function renderMobile() {
+  if (!isMobile()) return;
+  // Resolve which project is active: hash wins, else keep current, else first.
+  const hash = (location.hash || '').replace(/^#/, '');
+  if (getProject(hash)) {
+    if (activeProjectId !== hash || !state) mobileSelect(hash);
+  } else if (!getProject(activeProjectId)) {
+    const first = projectsSorted()[0];
+    if (first) mobileSelect(first.id);
+    else activeProjectId = null;
+  }
+  renderMobilePills();
+  renderMobileNotes();
+}
+
+function renderMobilePills() {
+  const bar = document.getElementById('m-pills');
+  bar.innerHTML = '';
+  for (const p of projectsSorted()) {
+    const pill = document.createElement('button');
+    pill.className = 'm-pill' + (p.id === activeProjectId ? ' active' : '');
+    if (p.id === activeProjectId) pill.style.background = p.color || 'var(--accent)';
+    const dot = document.createElement('span');
+    dot.className = 'm-pill-dot';
+    dot.style.background = p.color || 'var(--accent)';
+    pill.appendChild(dot);
+    pill.appendChild(document.createTextNode(p.name));
+    pill.onclick = () => { navTo(p.id); };
+    bar.appendChild(pill);
+  }
+}
+
+function renderMobileNotes() {
+  const box = document.getElementById('m-notes');
+  box.innerHTML = '';
+  if (!activeProjectId) {
+    box.innerHTML = '<div class="m-empty">No projects yet.<br>Create one on the desktop site first.</div>';
+    return;
+  }
+  const notes = (state.sections.notes || []);
+  if (notes.length === 0) {
+    box.innerHTML = '<div class="m-empty">No captured thoughts yet.<br>Type below — each entry lands in this project\'s Notes lane for triage on the desktop.</div>';
+    return;
+  }
+  // Newest first: the thought you just captured stays visible above the keyboard.
+  for (const item of [...notes].reverse()) {
+    const row = document.createElement('div');
+    row.className = 'm-note';
+    const text = document.createElement('div');
+    text.className = 'm-note-text';
+    text.textContent = item.title;
+    if (item.notes) {
+      const sub = document.createElement('span');
+      sub.className = 'm-note-sub';
+      sub.textContent = ' — ' + item.notes;
+      text.appendChild(sub);
+    }
+    const del = document.createElement('button');
+    del.className = 'm-note-del';
+    del.textContent = '×';
+    del.setAttribute('aria-label', 'Delete note');
+    del.onclick = () => { mDeleteNote(item.id); };
+    row.appendChild(text);
+    row.appendChild(del);
+    box.appendChild(row);
+  }
+}
+
+function mAddNote() {
+  const input = document.getElementById('m-input');
+  const raw = input.value.trim();
+  if (!raw || !activeProjectId) return;
+  const { title, notes } = itemFromText(raw);
+  state.sections.notes.push({ id: nextId++, title, notes });
+  saveState();
+  markEdited();
+  input.value = '';
+  renderMobileNotes();
+  input.focus(); // rapid capture: keep the keyboard up for the next thought
+}
+
+function mDeleteNote(id) {
+  const idx = state.sections.notes.findIndex((i) => i.id === id);
+  if (idx === -1) return;
+  state.sections.notes.splice(idx, 1);
+  saveState();
+  markEdited();
+  renderMobileNotes();
+}
+
+function initMobile() {
+  const input = document.getElementById('m-input');
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); mAddNote(); }
+  });
+  // Crossing the breakpoint (rotation, window resize) re-renders the right view.
+  const onChange = () => handleRoute();
+  if (mobileMQ.addEventListener) mobileMQ.addEventListener('change', onChange);
+  else mobileMQ.addListener(onChange);
+}
+
+// ============================================================
 //  SYNC ENGINE
 //  Pushes a full snapshot to /api/sync (debounced ~2s after any
 //  edit). The server merges per-project last-write-wins and
@@ -2533,6 +2766,7 @@ function applyMerged(store) {
       nextId = computeNextId();
       render();
     }
+    if ((registryChanged || activePlanChanged) && isMobile()) renderMobile();
   } finally {
     applyingRemote = false;
   }
@@ -2632,6 +2866,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 
 // ---- Boot ----
 migrateOrInit();
+initMobile();
 window.addEventListener('hashchange', handleRoute);
 handleRoute();
 initSync();

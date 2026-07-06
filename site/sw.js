@@ -1,3 +1,4 @@
+// File: site/sw.js → ~/Projects/projectplanners/site/sw.js
 // ============================================================
 //  Project Planner service worker
 //  - Precaches the app shell so the home-screen app opens
@@ -11,7 +12,7 @@
 //  are cleaned up on activate.
 // ============================================================
 
-const CACHE_VERSION = 'planner-v2';
+const CACHE_VERSION = 'planner-v3';
 
 const PRECACHE = [
   '/',
