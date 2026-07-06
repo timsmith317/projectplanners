@@ -326,6 +326,7 @@
   .structure-edit-btn {
     padding: 6px 14px; font-size: 10px;
   }
+  .structure-header-btns { display: flex; gap: 8px; flex-wrap: wrap; }
   .structure-command-wrap {
     position: relative;
     margin: 0 0 16px 0;
@@ -852,7 +853,11 @@
     <div class="structure-card" id="structure-card" style="display:none;">
       <div class="structure-header">
         <h2>Project Structure</h2>
-        <button class="btn structure-edit-btn" onclick="openStructureEdit()">Edit</button>
+        <div class="structure-header-btns">
+          <button class="btn structure-edit-btn" onclick="openRepoModal()">GitHub Repo</button>
+          <button class="btn structure-edit-btn" id="structure-refresh-btn" onclick="refreshStructureFromGitHub()">Refresh</button>
+          <button class="btn structure-edit-btn" onclick="openStructureEdit()">Edit</button>
+        </div>
       </div>
       <div class="structure-command-wrap" id="structure-command-wrap" style="display:none;">
         <button class="structure-copy-btn" onclick="copyStructureCommand()" title="Copy command to clipboard">Copy</button>
@@ -915,6 +920,20 @@
     <div class="modal-actions">
       <button class="btn" onclick="closeStructureEdit()">Cancel</button>
       <button class="btn btn-primary" onclick="saveStructureEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="repo-modal">
+  <div class="modal">
+    <h2>GitHub repository</h2>
+    <p>Link this project to a <strong>public</strong> GitHub repo and the structure card can refresh itself from the live file tree — no terminal, any device. The link syncs with the project.</p>
+    <input type="text" class="sync-input" id="repo-input" placeholder="owner/repo — e.g. timsmith317/thefilterlist" autocomplete="off" spellcheck="false">
+    <div class="sync-status-line" id="repo-status-line"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="repo-clear-btn" onclick="clearRepo()" style="display:none;">Unlink</button>
+      <button class="btn" onclick="closeRepoModal()">Close</button>
+      <button class="btn btn-primary" onclick="saveRepo()">Save &amp; refresh</button>
     </div>
   </div>
 </div>
@@ -2048,6 +2067,10 @@ function parseMarkdown(text) {
         inStructure = false;
       } else {
         structureLines.push(line);
+        // Recover a GitHub repo link written by the refresh feature, so
+        // export -> import round-trips keep the project linked.
+        const repoMatch = line.match(/github\.com\/([\w.-]+\/[\w.-]+)/i);
+        if (repoMatch && !newState.repo) newState.repo = repoMatch[1].replace(/\.git$/i, '');
       }
       continue;
     }
@@ -2530,6 +2553,111 @@ function deleteProject(id) {
 }
 
 // ============================================================
+//  GITHUB STRUCTURE REFRESH
+//  Each project can link a public GitHub repo (state.repo, synced with
+//  the plan). Refresh fetches the live file tree from the GitHub API
+//  (CORS-enabled, no auth, 60 req/hr) and writes it into state.structure
+//  in the same "./path" fenced-block format the tree renderer, export,
+//  and import already understand. Manual find-command paste still works
+//  via the Edit button for anything not on GitHub.
+// ============================================================
+
+// Accept "owner/repo", full GitHub URLs, and trailing ".git" / slashes.
+function parseRepoInput(v) {
+  let s = (v || '').trim();
+  if (!s) return null;
+  const urlMatch = s.match(/github\.com[/:]([\w.-]+\/[\w.-]+)/i);
+  if (urlMatch) s = urlMatch[1];
+  s = s.replace(/\.git$/i, '').replace(/\/+$/, '');
+  return /^[\w.-]+\/[\w.-]+$/.test(s) ? s : null;
+}
+
+// Mirror the default find command's exclusions.
+function includeRepoPath(path) {
+  const excludedDirs = ['node_modules/', '.expo/', 'ios/', 'android/', '.git/', 'dist/', 'build/'];
+  for (const d of excludedDirs) if (path.startsWith(d)) return false;
+  const base = path.split('/').pop();
+  if (base.startsWith('.env')) return false;
+  if (base.endsWith('.log')) return false;
+  if (base === '.DS_Store') return false;
+  return true;
+}
+
+async function refreshStructureFromGitHub() {
+  if (!activeProjectId) return;
+  if (!state.repo) { openRepoModal(); return; }
+  const btn = document.getElementById('structure-refresh-btn');
+  btn.textContent = 'Refreshing…';
+  btn.disabled = true;
+  try {
+    const repoRes = await fetch('https://api.github.com/repos/' + state.repo);
+    if (repoRes.status === 404) throw new Error('Repo not found — check the name, and make sure it\'s public.');
+    if (repoRes.status === 403) throw new Error('GitHub rate limit hit — try again in a bit.');
+    if (!repoRes.ok) throw new Error('GitHub error (HTTP ' + repoRes.status + ')');
+    const repoInfo = await repoRes.json();
+    const branch = repoInfo.default_branch || 'main';
+
+    const treeRes = await fetch('https://api.github.com/repos/' + state.repo + '/git/trees/' + encodeURIComponent(branch) + '?recursive=1');
+    if (!treeRes.ok) throw new Error('Could not read the file tree (HTTP ' + treeRes.status + ')');
+    const tree = await treeRes.json();
+
+    const paths = (tree.tree || [])
+      .filter((n) => n.type === 'blob' && includeRepoPath(n.path))
+      .map((n) => './' + n.path)
+      .sort();
+    if (paths.length === 0) throw new Error('Repo tree came back empty after filtering.');
+
+    const stamp = new Date().toLocaleString();
+    state.structure = [
+      'Source: github.com/' + state.repo + ' @ ' + branch + ' — refreshed ' + stamp,
+      (tree.truncated ? '_Note: repo is very large; GitHub truncated the tree._' : ''),
+      '',
+      '```',
+      paths.join('\n'),
+      '```',
+    ].filter((l, i) => !(i === 1 && !l)).join('\n');
+
+    markEdited();
+    render();
+    showToast('Structure refreshed from GitHub (' + paths.length + ' files)');
+  } catch (e) {
+    showToast(e.message || 'GitHub refresh failed');
+  } finally {
+    btn.textContent = 'Refresh';
+    btn.disabled = false;
+  }
+}
+
+// ---- Repo link modal ----
+function openRepoModal() {
+  document.getElementById('repo-input').value = state.repo || '';
+  document.getElementById('repo-clear-btn').style.display = state.repo ? 'inline-block' : 'none';
+  document.getElementById('repo-status-line').textContent = state.repo
+    ? 'Linked to github.com/' + state.repo
+    : 'Not linked yet.';
+  document.getElementById('repo-modal').classList.add('show');
+}
+function closeRepoModal() {
+  document.getElementById('repo-modal').classList.remove('show');
+}
+function saveRepo() {
+  const parsed = parseRepoInput(document.getElementById('repo-input').value);
+  if (!parsed) { showToast('Enter a repo as owner/repo or a GitHub URL'); return; }
+  state.repo = parsed;
+  saveState();
+  markEdited();
+  closeRepoModal();
+  refreshStructureFromGitHub();
+}
+function clearRepo() {
+  delete state.repo;
+  saveState();
+  markEdited();
+  closeRepoModal();
+  showToast('Repo unlinked — structure keeps its last contents');
+}
+
+// ============================================================
 //  MOBILE CAPTURE VIEW (≤640px)
 //  A dedicated capture surface: pick a project, type thoughts one
 //  per line into its Notes inbox. No board, no stats — triage
@@ -2716,7 +2844,7 @@ function initPullToRefresh() {
 //  regaining connectivity — the phone refreshes silently the
 //  moment you open it.
 // ============================================================
-const SITE_VERSION = 'v7'; // bump with each deploy (shown in the Sync dialog)
+const SITE_VERSION = 'v8'; // bump with each deploy (shown in the Sync dialog)
 const SYNC_URL = '/api/sync';
 const SYNC_TOKEN_KEY = 'planner-sync-token-v1';
 const SYNC_DEBOUNCE_MS = 2000;
