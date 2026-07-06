@@ -300,6 +300,14 @@
     font-size: 20px; margin-bottom: 8px; letter-spacing: -0.3px;
   }
   .vision-card p { font-size: 14px; color: var(--ink-soft); line-height: 1.6; }
+  #vision-display {
+    cursor: pointer; border-radius: 8px;
+    margin: -6px -8px; padding: 6px 8px;
+    transition: background 120ms;
+    white-space: pre-wrap;
+  }
+  #vision-display:hover { background: var(--bg-soft); }
+  #vision-display.vision-empty { color: var(--ink-dim); font-style: italic; }
   .vision-edit {
     margin-top: 12px; width: 100%; border: 1px solid var(--line);
     border-radius: 6px; padding: 10px 12px;
@@ -1305,7 +1313,12 @@ function render() {
 }
 
 function renderVision() {
-  document.getElementById('vision-display').textContent = state.vision;
+  const display = document.getElementById('vision-display');
+  const hasVision = !!(state.vision && state.vision.trim());
+  display.textContent = hasVision
+    ? state.vision
+    : 'Click to add a vision for this project…';
+  display.classList.toggle('vision-empty', !hasVision);
   document.getElementById('vision-edit').value = state.vision;
 }
 
@@ -2844,7 +2857,7 @@ function initPullToRefresh() {
 //  regaining connectivity — the phone refreshes silently the
 //  moment you open it.
 // ============================================================
-const SITE_VERSION = 'v8'; // bump with each deploy (shown in the Sync dialog)
+const SITE_VERSION = 'v9'; // bump with each deploy (shown in the Sync dialog)
 const SYNC_URL = '/api/sync';
 const SYNC_TOKEN_KEY = 'planner-sync-token-v1';
 const SYNC_DEBOUNCE_MS = 2000;
