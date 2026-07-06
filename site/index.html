@@ -295,6 +295,10 @@
     background: var(--bg-card); border: 1px solid var(--line);
     border-radius: 8px; padding: 24px;
   }
+  .vision-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; gap: 16px;
+  }
   .vision-card h2 {
     font-family: 'Outfit', sans-serif; font-weight: 600;
     font-size: 20px; margin-bottom: 8px; letter-spacing: -0.3px;
@@ -853,7 +857,10 @@
 
   <main class="main">
     <div class="vision-card">
-      <h2>Vision</h2>
+      <div class="vision-header">
+        <h2>Vision</h2>
+        <button class="btn structure-edit-btn" id="vision-edit-btn" onclick="startVisionEdit()">Edit</button>
+      </div>
       <div id="vision-display"></div>
       <textarea class="vision-edit" id="vision-edit" style="display:none;"></textarea>
     </div>
@@ -1314,12 +1321,23 @@ function render() {
 
 function renderVision() {
   const display = document.getElementById('vision-display');
+  const btn = document.getElementById('vision-edit-btn');
   const hasVision = !!(state.vision && state.vision.trim());
   display.textContent = hasVision
     ? state.vision
-    : 'Click to add a vision for this project…';
+    : 'No vision yet — click Add to describe what this project is.';
   display.classList.toggle('vision-empty', !hasVision);
-  document.getElementById('vision-edit').value = state.vision;
+  btn.textContent = hasVision ? 'Edit' : 'Add';
+  btn.style.display = 'inline-block';
+  document.getElementById('vision-edit').value = state.vision || '';
+}
+
+function startVisionEdit() {
+  document.getElementById('vision-display').style.display = 'none';
+  document.getElementById('vision-edit-btn').style.display = 'none';
+  const edit = document.getElementById('vision-edit');
+  edit.style.display = 'block';
+  edit.focus();
 }
 
 /**
@@ -1582,13 +1600,7 @@ function copyStructureCommand() {
   });
 }
 
-document.getElementById('vision-display').addEventListener('click', () => {
-  const display = document.getElementById('vision-display');
-  const edit = document.getElementById('vision-edit');
-  display.style.display = 'none';
-  edit.style.display = 'block';
-  edit.focus();
-});
+document.getElementById('vision-display').addEventListener('click', startVisionEdit);
 document.getElementById('vision-edit').addEventListener('blur', () => {
   const edit = document.getElementById('vision-edit');
   if (state.vision !== edit.value) {
@@ -2857,7 +2869,7 @@ function initPullToRefresh() {
 //  regaining connectivity — the phone refreshes silently the
 //  moment you open it.
 // ============================================================
-const SITE_VERSION = 'v9'; // bump with each deploy (shown in the Sync dialog)
+const SITE_VERSION = 'v10'; // bump with each deploy (shown in the Sync dialog)
 const SYNC_URL = '/api/sync';
 const SYNC_TOKEN_KEY = 'planner-sync-token-v1';
 const SYNC_DEBOUNCE_MS = 2000;

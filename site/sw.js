@@ -12,7 +12,7 @@
 //  are cleaned up on activate.
 // ============================================================
 
-const CACHE_VERSION = 'planner-v9';
+const CACHE_VERSION = 'planner-v10';
 
 const PRECACHE = [
   '/',
