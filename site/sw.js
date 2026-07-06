@@ -12,7 +12,7 @@
 //  are cleaned up on activate.
 // ============================================================
 
-const CACHE_VERSION = 'planner-v3';
+const CACHE_VERSION = 'planner-v7';
 
 const PRECACHE = [
   '/',
@@ -50,7 +50,6 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.open(CACHE_VERSION).then(async (cache) => {
-      const cached = await cache.match(cacheKey);
       const network = fetch(req)
         .then((res) => {
           // Cache good same-origin responses and opaque font responses.
@@ -60,7 +59,19 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(() => undefined);
-      // Stale-while-revalidate: cached copy wins if present.
+
+      if (req.mode === 'navigate') {
+        // NETWORK-FIRST for the page itself: online loads always get the
+        // latest deploy (no one-version-behind cache lag); the cached shell
+        // is the offline fallback only.
+        const res = await network;
+        if (res) return res;
+        const cached = await cache.match(cacheKey);
+        return cached || new Response('Offline', { status: 503 });
+      }
+
+      // Everything else (icons, fonts): stale-while-revalidate for speed.
+      const cached = await cache.match(cacheKey);
       return cached || network.then((res) => res || new Response('Offline', { status: 503 }));
     })
   );
