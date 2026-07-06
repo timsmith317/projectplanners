@@ -11,7 +11,7 @@
 //  are cleaned up on activate.
 // ============================================================
 
-const CACHE_VERSION = 'planner-v1';
+const CACHE_VERSION = 'planner-v2';
 
 const PRECACHE = [
   '/',
